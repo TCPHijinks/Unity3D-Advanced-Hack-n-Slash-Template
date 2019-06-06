@@ -7,32 +7,38 @@ public class P_Controller : MonoBehaviour
 {
     // Characteristics
     private readonly float mass = 20.4f;
-   
-    // Misc.
     [SerializeField] Camera cam;            // Camera movement dir is relative to.
     [SerializeField] Transform groundCheck; // Transform of feet to know if grounded.
     [SerializeField] LayerMask ground;      // Ground layer mask.   
-    [SerializeField] Vector3 Drag;
-    
-    // Mobility action variables.
-    [SerializeField] [Range(0, 10f)] private float jumpHeight = 2f;
-    [SerializeField] [Range(0, 03f)] private float jumpCooldown = 1.5f;
-    [SerializeField] [Range(0, 03f)] private float groundDistance = 1f;     // Player detect ground to jump.
+    [SerializeField] Vector3 Drag = new Vector3(4, 5, 4);
+        
+    [Header("Mobility action variables.")]
+    [Space(20)] // 10 pixels of spacing here.
+    [SerializeField] [Range(0, 10f)] private float jumpHeight = 0.51f;
+    [SerializeField] [Range(0, 03f)] private float jumpCooldown = 0.72f;
+    [SerializeField] [Range(0, 03f)] private float groundDistance = 0.26f;     // Player detect ground to jump.
     [SerializeField] [Range(0, 10f)] private float dashDistance = 5f;
-
-    // Falling and Physics variables.
-    [SerializeField] [Range(0, 05f)] private float fallMultiplier = 1.5f;   // Amount multiply gravity when character falling.
-    [SerializeField] [Range(0, 05f)] private float lowJumpMultiplier = 1f;  // Amount multiply gravity when do little jump.
-    [SerializeField] [Range(00, 50)] private int staggerThreshold = 12;     // How long player can fall before staggering.
-
-    // General movement variables.
-    [SerializeField] [Range(0, 10f)] private float rotationSpeed = 9.4f;    // Speed of the player rotation.
-    [SerializeField] [Range(1, 10f)] private float accelModifier = 9.2f;    // Acceleration modifer for movement.    
-    [SerializeField] [Range(0, 10f)] private float jogSpeed = 17.5f;        // Player default base move speed.    
-    [SerializeField] [Range(0, 10f)] private float runSpeed = 27.8f;        // Player default base run speed.
-    [SerializeField] [Range(0, 10f)] private float crouchSpeed = 10.6f;     // Player default base crouch move speed.
-
-    [SerializeField] private float slopeForceRayLength = 2f;    // Multiplier of down ray used to determine whether on a slope.
+       
+    [Header("Falling and Physics variables.")]
+    [Space(20)] // 10 pixels of spacing here.
+    [SerializeField] [Range(0, 05f)] private float fallMultiplier = 0.87f;   // Amount multiply gravity when character falling.
+    [SerializeField] [Range(0, 05f)] private float lowJumpMultiplier = 0.6f;  // Amount multiply gravity when do little jump.
+    [SerializeField] [Range(00, 99)] private int staggerThreshold = 10;     // How long player can fall before staggering.
+           
+    [Header("General movement variables.")]
+    [Space(30)] // 10 pixels of spacing here.
+    
+    [SerializeField] [Range(0, 10f)] private float rotationSpeedCrouching = 9.5f;   // Speed of the player rotation.   
+    [SerializeField] [Range(0, 10f)] private float rotationSpeedJogging = 6.95f;     // Speed of the player rotation.   
+    [SerializeField] [Range(0, 10f)] private float rotationSpeedRunning = 6.65f;     // Speed of the player rotation.   
+    [SerializeField] [Range(0, 99f)] private float dirDampenCrouch = 3f;    // Base dampening value applied when crouching.
+    [SerializeField] [Range(0, 99f)] private float dirDampenJog = 15f;      // Base dampening value applied when jogging.
+    [SerializeField] [Range(0, 99f)] private float dirDampenRun = 87.7f;    // Base dampening value applied when running.
+    [SerializeField] [Range(1, 10f)] private float accelModifier = 9.35f;     // Acceleration modifer for movement.    
+    [SerializeField] [Range(0, 10f)] private float jogSpeed = 3.86f;        // Player default base move speed.    
+    [SerializeField] [Range(0, 10f)] private float runSpeed = 5.99f;        // Player default base run speed.
+    [SerializeField] [Range(0, 10f)] private float crouchSpeed = 1.55f;     // Player default base crouch move speed.
+    [SerializeField] [Range(0, 10f)] private float slopeForceRayLength = 2f;// Multiplier of down ray used to determine whether on a slope.
     
     CharacterController cController;    
     Vector3 moveDir;    // Direction of movement.
@@ -40,11 +46,12 @@ public class P_Controller : MonoBehaviour
 
     public bool grounded = true;    // Whether grounded to jump.  **Public for Debug*
     public bool canJump = true;  
-    public float gravity = -9.8f;  // Gravity that affects player.
+    public float gravity = 3.2f;  // Gravity that affects player.
     private float baseSpeed;        // Base speed of movement state.
     private float curSpeed;         // Current movement speed.
     private float _accelModifier;
-
+    public float dirChangeDampening; // Dampening applied during dir changes.
+    public float rotationSpeed;    // Speed of the player rotation.   
 
 
     // Start is called before the first frame update
@@ -54,7 +61,7 @@ public class P_Controller : MonoBehaviour
     }
 
 
-
+    
     // Update is called once per frame
     void Update()
     {
@@ -66,10 +73,15 @@ public class P_Controller : MonoBehaviour
         if (moveDir.x != 0 && moveDir.z != 0)
             transform.rotation = (Quaternion.Slerp(transform.rotation,
                 Quaternion.LookRotation(new Vector3(moveDir.x, 0, moveDir.z)), rotationSpeed * Time.deltaTime));
-        
-        // Update if walking and direction.
-        moveDir = MoveInputDir();
 
+
+       // Update movement speed and responsiveness.
+        UpdateMoveSpeed();      // Update movement speed based on input and whether staggered.
+        UpdateMoveDampening();  // Update move responsiveness (dampening) based on move speed state.
+        UpdateRotationSpeed();  // Update speed player rotates to move dir based on move speed state.
+
+        // Update if walking and direction with dampening.
+        moveDir = Vector3.Lerp(moveDir, MoveInputDir(), dirChangeDampening);
         cController.Move(moveDir * Time.deltaTime * curSpeed);
         
         // Gravity and Mobility Movements.
@@ -105,19 +117,22 @@ public class P_Controller : MonoBehaviour
     {
         // Only update move state speed if grounded.
         if (grounded)
+        {
             // Set cur speed if not moving.
             if (moveDir.x == 0 && moveDir.z == 0)
                 curSpeed = 0;
             else
                 curSpeed = AcceleratedSpeed();
 
-        // Movement state check.
-        if (Input.GetKey(KeyCode.LeftControl))
-            baseSpeed = crouchSpeed;
-        else if (Input.GetKey(KeyCode.LeftShift))
-            baseSpeed = runSpeed;
-        else
-            baseSpeed = jogSpeed;
+            // Movement state check.
+            if (Input.GetKey(KeyCode.LeftControl))
+                baseSpeed = crouchSpeed;
+            else if (Input.GetKey(KeyCode.LeftShift))
+                baseSpeed = runSpeed;
+            else
+                baseSpeed = jogSpeed;
+        }
+       
 
         // If just staggered, set speed to lowest base speed,
         //  and also slow acceleration on take off.        
@@ -135,6 +150,45 @@ public class P_Controller : MonoBehaviour
 
 
 
+    // Changes rotation speed and movement dir change dampening to match
+    //  the speed of the character.
+    private void UpdateMoveDampening()
+    {
+        // Update dir change dampening only on ground.
+        if(grounded)
+        {
+            if (baseSpeed == crouchSpeed)
+            {
+                dirChangeDampening = dirDampenCrouch;
+            }
+                
+            else if (baseSpeed == jogSpeed)
+                dirChangeDampening = dirDampenJog;
+            else
+                dirChangeDampening = dirDampenRun;
+        }
+    }
+
+
+
+    // Changes speed of rotation based off of move speed state.
+    private void UpdateRotationSpeed()
+    {
+        // Update rotation speed if grounded.
+        if(grounded)
+        {
+            // Assign rotation speed relative to move speed state.
+            if (baseSpeed == crouchSpeed)
+                rotationSpeed = rotationSpeedCrouching;
+            else if (baseSpeed == jogSpeed)
+                rotationSpeed = rotationSpeedJogging;
+            else
+                rotationSpeed = rotationSpeedRunning;
+        }       
+    }
+
+
+    Vector3 inputDir;
     // Updates movement walk/run dir.
     private Vector3 MoveInputDir()
     {
@@ -142,7 +196,7 @@ public class P_Controller : MonoBehaviour
         Vector3 forward = cam.transform.forward;
         Vector3 right = cam.transform.right;
 
-        Vector3 inputDir;
+       
 
         // Stop cam from making char lean forward.
         forward.y = 0f;
@@ -151,9 +205,6 @@ public class P_Controller : MonoBehaviour
         // Only read directional input if grounded.
         if (grounded)
         {
-            // Update movement speed based on input.
-            UpdateMoveSpeed();
-
             // Get & clamp move input, set move dir relative to camera position. 
             inputDir = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")); // Get player move input.
             inputDir = Vector3.ClampMagnitude(inputDir, 1f);  // Clamp input magnitude to prevent diagnal move bug.
@@ -279,13 +330,24 @@ public class P_Controller : MonoBehaviour
     //  whether the player is falling or climbing.
     Vector3 prevPos, curPos;    
     float GetVelocityY()
-    {       
-        curPos = transform.position;
+    {
+        
+        
+
+        if (curPos != prevPos && 
+            curPos != transform.position && 
+            prevPos != transform.position &&
+            prevPos != transform.position)
+            prevPos = curPos;
+
+        if (prevPos != transform.position)
+            curPos = transform.position;
+
+
 
         float yVelocity = (curPos.y - prevPos.y) / Time.deltaTime;
 
-        if (curPos != prevPos)
-            prevPos = curPos;
+       
 
         return yVelocity;
     }
@@ -296,15 +358,18 @@ public class P_Controller : MonoBehaviour
     public int fallDur = 0; // Counts how long player has been falling.    
     private bool StaggeringFall()
     {
-        // COntinue to count up whilst in air.
-        if (!grounded && fallDur > 0)        
-            fallDur++;        
+        // Only count fall dur when falling.
+        if(GetVelocityY() < 0)
+        {
+            // COntinue to count up whilst in air.
+            if (!grounded && fallDur > 0)
+                fallDur++;
 
-        // Start counting when first start falling.
-        if (!grounded && GetVelocityY() < 0 && fallDur == 0)        
-            fallDur++;   
+            // Start counting when first start falling.
+            if (!grounded && fallDur == 0)
+                fallDur++;
+        }
        
-
         // Check if landed.
         if (grounded)
         {
