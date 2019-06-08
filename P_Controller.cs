@@ -34,7 +34,8 @@ public class P_Controller : MonoBehaviour
     [SerializeField] [Range(0, 99f)] private float dirDampenCrouch = 3f;    // Base dampening value applied when crouching.
     [SerializeField] [Range(0, 99f)] private float dirDampenJog = 15f;      // Base dampening value applied when jogging.
     [SerializeField] [Range(0, 99f)] private float dirDampenRun = 87.7f;    // Base dampening value applied when running.
-    [SerializeField] [Range(1, 10f)] private float accelModifier = 9.35f;     // Acceleration modifer for movement.    
+    [SerializeField] [Range(1, 10f)] private float accelModifier = 9.35f;   // Acceleration amount modifier applies to movement.    
+    [SerializeField] [Range(1, 10f)] private float decelModifier = 9.35f;   // Deceleration amount modifier applies to movement.  
     [SerializeField] [Range(0, 10f)] private float jogSpeed = 3.86f;        // Player default base move speed.    
     [SerializeField] [Range(0, 10f)] private float runSpeed = 5.99f;        // Player default base run speed.
     [SerializeField] [Range(0, 10f)] private float crouchSpeed = 1.55f;     // Player default base crouch move speed.
@@ -49,7 +50,8 @@ public class P_Controller : MonoBehaviour
     public float gravity = 3.2f;  // Gravity that affects player.
     private float baseSpeed;        // Base speed of movement state.
     private float curSpeed;         // Current movement speed.
-    private float _accelModifier;
+    private float _accelModifier;   // Dynamic modifer applied to movement acceleration.
+    private float _decelModifier;   // Dynamic modifier applied to movement deceleration.
     public float dirChangeDampening; // Dampening applied during dir changes.
     public float rotationSpeed;    // Speed of the player rotation.   
 
@@ -58,6 +60,8 @@ public class P_Controller : MonoBehaviour
     void Start()
     {
         cController = GetComponent<CharacterController>();
+        _accelModifier = accelModifier;
+        _decelModifier = decelModifier;
     }
 
 
@@ -98,17 +102,19 @@ public class P_Controller : MonoBehaviour
 
 
     // Movement speed with acceleration calculation.
-    private float AcceleratedSpeed()
+    private float AccelerateSpeed()
     {
-        // Calculate rate of acceleration.
+        // Calculate rate of acceleration/deceleration.
         float acceleration = baseSpeed / mass;
 
         // Accelerate if moving until max base speed.
         if (curSpeed < baseSpeed)
-            return curSpeed + (0.8f * acceleration) * (_accelModifier * 2.5f) * Time.deltaTime;
+            return curSpeed + (0.8f * acceleration) * (_accelModifier * 2.5f) * Time.deltaTime; // Accel if cur speed is less than intended speed.
         else
-            return baseSpeed;
+            return curSpeed - (0.8f * acceleration) * (_decelModifier * 2.5f) * Time.deltaTime; // Decel if cur speed is greater than intended speed.
     }
+
+    
 
 
 
@@ -122,7 +128,7 @@ public class P_Controller : MonoBehaviour
             if (moveDir.x == 0 && moveDir.z == 0)
                 curSpeed = 0;
             else
-                curSpeed = AcceleratedSpeed();
+                curSpeed = AccelerateSpeed();
 
             // Movement state check.
             if (Input.GetKey(KeyCode.LeftControl))
@@ -143,7 +149,7 @@ public class P_Controller : MonoBehaviour
         }
 
         // If not staggered and reached speed threshold, return 
-       //   active acceleration to normal base value.        
+        //  active acceleration to normal base value.        
         if (curSpeed > crouchSpeed && !StaggeringFall())
             _accelModifier = accelModifier;
     }
@@ -195,9 +201,7 @@ public class P_Controller : MonoBehaviour
         // Get and set forward & right relative to camera.
         Vector3 forward = cam.transform.forward;
         Vector3 right = cam.transform.right;
-
-       
-
+        
         // Stop cam from making char lean forward.
         forward.y = 0f;
         right.y = 0f;
@@ -304,20 +308,19 @@ public class P_Controller : MonoBehaviour
         canJump = true;
     }
 
-    
+
 
     // Returns whether the player is on a sloped surface.
+    RaycastHit hit; // Store hit information of ray.
     bool OnSlope()
     {
         // Not on slope if in air.
         if (!grounded)
             return false;
-
-        RaycastHit hit; // Store hit information of ray.
-
+        
         // Cast raycast downwards at half the char height + multiplier from its center origin.
         if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, slopeForceRayLength, ground))
-            if (hit.normal != Vector3.up)
+            if (hit.normal != Vector3.up)   // Check if ray doesn't bounce straight up (on slope).           
                 return true;
 
         // Not on sloped surface.
