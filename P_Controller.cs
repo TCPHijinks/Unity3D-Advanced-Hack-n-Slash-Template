@@ -18,7 +18,9 @@ public class P_Controller : MonoBehaviour
     [SerializeField] [Range(0, 03f)] private float jumpCooldown = 0.72f;
     [SerializeField] [Range(0, 03f)] private float groundDistance = 0.26f;     // Player detect ground to jump.
     [SerializeField] [Range(0, 10f)] private float dashDistance = 5f;
-       
+    [SerializeField] [Range(0, 10f)] private float slideSpeedBonus = 3f;
+    [SerializeField] [Range(0, 99f)] private float slideDeceleration = 5f;
+
     [Header("Falling and Physics variables.")]
     [Space(20)] // 10 pixels of spacing here.
     [SerializeField] [Range(0, 05f)] private float fallMultiplier = 0.87f;   // Amount multiply gravity when character falling.
@@ -45,15 +47,22 @@ public class P_Controller : MonoBehaviour
     Vector3 moveDir;    // Direction of movement.
     Vector3 velocity;   // Forces that affect/impose movement.
 
-    public bool grounded = true;    // Whether grounded to jump.  **Public for Debug*
-    public bool canJump = true;  
-    public float gravity = 3.2f;  // Gravity that affects player.
+    private bool grounded = true;    // Whether grounded to jump.  **Public for Debug*
+    private bool canJump = true;     // Whether the player is capable of jumping.    
     private float baseSpeed;        // Base speed of movement state.
     private float curSpeed;         // Current movement speed.
     private float _accelModifier;   // Dynamic modifer applied to movement acceleration.
-    private float _decelModifier;   // Dynamic modifier applied to movement deceleration.
-    public float dirChangeDampening; // Dampening applied during dir changes.
-    public float rotationSpeed;    // Speed of the player rotation.   
+    private float _decelModifier;   // Dynamic modifier applied to movement deceleration.  
+    private float _slideDeceleration;
+    private bool jumped = false;        // Whether player has just jumped.
+    private bool allowDirInput = true;  // Whether controller will read player movement input.
+    private bool slideLock = false;     // Whether player is currently locked in a slide.
+    public float gravity = 3.2f;        // Gravity that affects player.
+    public float dirChangeDampening;    // Dampening applied during dir changes.
+    public float rotationSpeed;         // Speed of the player rotation.   
+
+
+
 
 
     // Start is called before the first frame update
@@ -62,25 +71,26 @@ public class P_Controller : MonoBehaviour
         cController = GetComponent<CharacterController>();
         _accelModifier = accelModifier;
         _decelModifier = decelModifier;
+        _slideDeceleration = slideDeceleration;
     }
 
 
+
     
+
     // Update is called once per frame
     void Update()
     {
         // Check if player grounded.
         grounded = Physics.CheckSphere(groundCheck.position,
-            groundDistance, ground, QueryTriggerInteraction.Ignore);
-        
+            groundDistance, ground, QueryTriggerInteraction.Ignore);        
         // Rotate to move direction unless not moving.
         if (moveDir.x != 0 && moveDir.z != 0)
             transform.rotation = (Quaternion.Slerp(transform.rotation,
                 Quaternion.LookRotation(new Vector3(moveDir.x, 0, moveDir.z)), rotationSpeed * Time.deltaTime));
 
-
        // Update movement speed and responsiveness.
-        UpdateMoveSpeed();      // Update movement speed based on input and whether staggered.
+        UpdateMoveSpeed();      // Update movement speed based on input and whether staggered.       
         UpdateMoveDampening();  // Update move responsiveness (dampening) based on move speed state.
         UpdateRotationSpeed();  // Update speed player rotates to move dir based on move speed state.
 
@@ -91,13 +101,36 @@ public class P_Controller : MonoBehaviour
         // Gravity and Mobility Movements.
         MobilitySkillCheck();   // Check for and update velocity if char uses a mobility skill (e.g. jumping).
         Jump();                 //  Check if jump, apply addittional forces depending on type of jump.
+        Slide();
         StaggeringFall();
         SetPhysicsVelocity();   // Update gravity & drags effects on character velocity.    
-        
     
         // Apply calculated velocity.
         cController.Move(velocity * Time.deltaTime);
     }
+
+
+
+
+
+    // Returns whether the player is on a sloped surface.
+    RaycastHit hit; // Store hit information of ray.
+    bool OnSlope()
+    {
+        // Not on slope if in air.
+        if (!grounded)
+            return false;
+        
+        // Cast raycast downwards at half the char height + multiplier from its center origin.
+        if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, slopeForceRayLength, ground))
+            if (hit.normal != Vector3.up)   // Check if ray doesn't bounce straight up (on slope).           
+                return true;
+
+        // Not on sloped surface.
+        return false;
+    }
+
+
 
 
 
@@ -114,11 +147,11 @@ public class P_Controller : MonoBehaviour
             return curSpeed - (0.8f * acceleration) * (_decelModifier * 2.5f) * Time.deltaTime; // Decel if cur speed is greater than intended speed.
     }
 
-    
 
 
 
-    // Determine move state and speed.
+   
+    // Determine move state and speed.  
     private void UpdateMoveSpeed()
     {
         // Only update move state speed if grounded.
@@ -130,16 +163,17 @@ public class P_Controller : MonoBehaviour
             else
                 curSpeed = AccelerateSpeed();
 
-            // Movement state check.
-            if (Input.GetKey(KeyCode.LeftControl))
-                baseSpeed = crouchSpeed;
-            else if (Input.GetKey(KeyCode.LeftShift))
-                baseSpeed = runSpeed;
-            else
-                baseSpeed = jogSpeed;
-        }
-       
-
+            // Movement state check if not sliding.
+            if(allowDirInput)
+            {
+                if (Input.GetKey(KeyCode.LeftControl))
+                    baseSpeed = crouchSpeed;
+                else if (Input.GetKey(KeyCode.LeftShift))
+                    baseSpeed = runSpeed;
+                else
+                    baseSpeed = jogSpeed;
+            }
+        }     
         // If just staggered, set speed to lowest base speed,
         //  and also slow acceleration on take off.        
         if (StaggeringFall())
@@ -147,11 +181,112 @@ public class P_Controller : MonoBehaviour
             _accelModifier = accelModifier / 2;
             baseSpeed = crouchSpeed / 2;
         }
-
         // If not staggered and reached speed threshold, return 
         //  active acceleration to normal base value.        
         if (curSpeed > crouchSpeed && !StaggeringFall())
             _accelModifier = accelModifier;
+    }
+
+
+
+
+
+    public bool sliding = false;
+    public float m = 1;
+    // Updates movement walk/run dir.
+    Vector3 inputDir;
+    private Vector3 MoveInputDir()
+    {
+        // Get and set forward & right relative to camera.
+        Vector3 forward = cam.transform.forward;
+        Vector3 right = cam.transform.right;
+
+        // Stop cam from making char lean forward.
+        forward.y = 0f;
+        right.y = 0f;
+
+        if (slideLock)
+            m = 2;
+        else
+            m = 1;
+
+        // Only read directional input if grounded.
+        if (grounded)
+        {
+            if(allowDirInput)
+            {
+                // Get & clamp move input, set move dir relative to camera position. 
+                inputDir = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")); // Get player move input.                
+            }
+            else
+            {
+
+            }
+                inputDir = new Vector3(inputDir.x + Input.GetAxis("Horizontal"), 0, inputDir.z + Input.GetAxis("Vertical")); // Get player move input.     
+
+            inputDir = Vector3.ClampMagnitude(inputDir, 1f);  // Clamp input magnitude to prevent diagnal move bug.
+
+            // Prevent diagnal move speed bug.
+            forward.Normalize();
+            right.Normalize();
+
+            // Set move dir based input dir relative to where the camera is looking.                 
+            return (forward * (inputDir.z / m) + right * (inputDir.x / m));
+        }
+        // Return no input if not grounded.
+        return moveDir;
+    }
+
+
+
+
+
+    public GameObject bodyTEMP;   
+    void Slide()
+    {
+        // Sliding. If can slide and press button, lock player into a slide.           
+        if (curSpeed >= runSpeed && Input.GetKey(KeyCode.LeftAlt) && !slideLock)
+        {
+            Debug.Log("WWWWWWW");
+            curSpeed += slideSpeedBonus;
+            slideLock = true;
+            allowDirInput = false;
+        }
+
+        // Unlock from slide when at crouch speed.
+        if (curSpeed <= crouchSpeed && slideLock)
+        {
+            slideLock = false;
+            allowDirInput = true;
+        }
+
+        // Check if player slide off edge and fall.
+        if(!grounded && slideLock)
+        {
+            slideLock = false;
+            allowDirInput = true;
+            curSpeed = curSpeed / 2;
+            fallDur = staggerThreshold; // Set staggery fall conditions true.
+            StaggeringFall();   // Stagger player.
+        }
+
+    
+
+
+        Debug.Log(slideLock);
+
+
+        bodyTEMP.GetComponent<MeshRenderer>().material.color = Color.white;
+        if (slideLock)
+        {
+        
+            curSpeed -= slideDeceleration * Time.deltaTime;
+            bodyTEMP.GetComponent<MeshRenderer>().material.color = Color.red;
+        }
+
+        
+
+
     }
 
 
@@ -193,38 +328,9 @@ public class P_Controller : MonoBehaviour
         }       
     }
 
+  
 
-    Vector3 inputDir;
-    // Updates movement walk/run dir.
-    private Vector3 MoveInputDir()
-    {
-        // Get and set forward & right relative to camera.
-        Vector3 forward = cam.transform.forward;
-        Vector3 right = cam.transform.right;
-        
-        // Stop cam from making char lean forward.
-        forward.y = 0f;
-        right.y = 0f;
-
-        // Only read directional input if grounded.
-        if (grounded)
-        {
-            // Get & clamp move input, set move dir relative to camera position. 
-            inputDir = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")); // Get player move input.
-            inputDir = Vector3.ClampMagnitude(inputDir, 1f);  // Clamp input magnitude to prevent diagnal move bug.
-
-            // Prevent diagnal move speed bug.
-            forward.Normalize();
-            right.Normalize();
-
-            // Set move dir based input dir relative to where the camera is looking.                 
-            return (forward * inputDir.z + right * inputDir.x);
-        }
-        // Return no input if not grounded.
-        return moveDir;
-    }
-
-
+   
 
     // Returns velocity calculated from gravity and drag, 
     //  also keeps player from bouncing on slopes.
@@ -240,7 +346,7 @@ public class P_Controller : MonoBehaviour
         velocity.z /= 1 + Drag.z * Time.deltaTime;
 
         // Extra force to keep player from bouncing when descending slopes.
-        if (OnSlope() && GetVelocityY() <= 0)        
+        if (OnSlope() && GetVelocityY() <= 0 && !jumped)        
             velocity.y -= (gravity * 4 * Time.deltaTime);
     }
 
@@ -271,13 +377,18 @@ public class P_Controller : MonoBehaviour
     //      to quicken the fall. Making it less floaty.        
     private void Jump()
     {
+        // Has no llonger just jumped if on ground.
+        if (!canJump && !grounded)
+            jumped = false;
+
         // Jump only if grounded.
         if (Input.GetKeyDown(KeyCode.Space) && grounded)
         {
             if (canJump)
             {
-                velocity.y += (jumpHeight * 3 * gravity);
-                StartCoroutine(JumpCooldown());
+                jumped = true;  // Has just jumped to allow jumping on slopes.
+                velocity.y += (jumpHeight * 3 * gravity);   // Apply jumping force.
+                StartCoroutine(JumpCooldown()); // Start jump cooldown.
             }
         }
         if (!grounded)
@@ -295,8 +406,9 @@ public class P_Controller : MonoBehaviour
                 // Apply additional (strong) gravity to y velocity every second.
                 velocity.y -= (gravity * mass) * (fallMultiplier * 1.5f) * Time.deltaTime;
             }
-        }
+        }  
     }
+
 
 
 
@@ -307,52 +419,18 @@ public class P_Controller : MonoBehaviour
         yield return new WaitForSeconds(jumpCooldown);
         canJump = true;
     }
-
-
-
-    // Returns whether the player is on a sloped surface.
-    RaycastHit hit; // Store hit information of ray.
-    bool OnSlope()
-    {
-        // Not on slope if in air.
-        if (!grounded)
-            return false;
-        
-        // Cast raycast downwards at half the char height + multiplier from its center origin.
-        if (Physics.Raycast(groundCheck.position, Vector3.down, out hit, slopeForceRayLength, ground))
-            if (hit.normal != Vector3.up)   // Check if ray doesn't bounce straight up (on slope).           
-                return true;
-
-        // Not on sloped surface.
-        return false;
-    }
-
-
-
+       
     // Calculates the velocity of the y Axis for the purpose of knowing
     //  whether the player is falling or climbing.
-    Vector3 prevPos, curPos;    
+    Vector3 curPos;    
     float GetVelocityY()
-    {
-        
-        
-
-        if (curPos != prevPos && 
-            curPos != transform.position && 
-            prevPos != transform.position &&
-            prevPos != transform.position)
-            prevPos = curPos;
-
-        if (prevPos != transform.position)
-            curPos = transform.position;
-
-
-
-        float yVelocity = (curPos.y - prevPos.y) / Time.deltaTime;
-
-       
-
-        return yVelocity;
+    {      
+        // Save last position and get new current to calculate distance.
+        Vector3 prevPos = curPos;       // Update previous pos to the last know position.
+        curPos = transform.position;    // Update current position to new current position.
+                
+        // Return velocity of y axis.
+        return (curPos.y - prevPos.y) / Time.deltaTime;
     }
 
 
@@ -371,8 +449,7 @@ public class P_Controller : MonoBehaviour
             // Start counting when first start falling.
             if (!grounded && fallDur == 0)
                 fallDur++;
-        }
-       
+        }       
         // Check if landed.
         if (grounded)
         {
