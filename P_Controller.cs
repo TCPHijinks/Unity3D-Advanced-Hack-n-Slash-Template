@@ -223,7 +223,7 @@ public class P_Controller : MonoBehaviour
 
 
     
-    public GameObject bodyTEMP;   
+    public GameObject playerBodyObject;   
     void Slide()
     {
         // Sliding. If can slide and press button, lock player into a slide.           
@@ -254,11 +254,11 @@ public class P_Controller : MonoBehaviour
         
         Debug.Log(slideLock);
         
-        bodyTEMP.GetComponent<MeshRenderer>().material.color = Color.white;
+        playerBodyObject.GetComponent<MeshRenderer>().material.color = Color.white;
         if (slideLock)
         {
             curSpeed -= slideDeceleration * Time.deltaTime;
-            bodyTEMP.GetComponent<MeshRenderer>().material.color = Color.red;
+            playerBodyObject.GetComponent<MeshRenderer>().material.color = Color.red;
         }
     }
 
