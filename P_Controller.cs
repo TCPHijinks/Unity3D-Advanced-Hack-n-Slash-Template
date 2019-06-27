@@ -190,11 +190,7 @@ public class P_Controller : MonoBehaviour
 
 
 
-
-    public bool sliding = false;
-    public float m = 1;
-    // Updates movement walk/run dir.
-    Vector3 inputDir;
+       
     private Vector3 MoveInputDir()
     {
         // Get and set forward & right relative to camera.
@@ -205,33 +201,19 @@ public class P_Controller : MonoBehaviour
         forward.y = 0f;
         right.y = 0f;
 
-        if (slideLock)
-            m = 2;
-        else
-            m = 1;
+        // Get & clamp move input, set move dir relative to camera position. 
+        Vector3 inputDir = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")); // Get player move input.
+        inputDir = Vector3.ClampMagnitude(inputDir, 1f);  // Clamp input magnitude to prevent diagnal move bug.
 
+        // Prevent diagnal move speed bug.
+        forward.Normalize();
+        right.Normalize();
+        
         // Only read directional input if grounded.
-        if (grounded)
+        if (grounded && allowDirInput)
         {
-            if(allowDirInput)
-            {
-                // Get & clamp move input, set move dir relative to camera position. 
-                inputDir = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")); // Get player move input.                
-            }
-            else
-            {
-
-            }
-                inputDir = new Vector3(inputDir.x + Input.GetAxis("Horizontal"), 0, inputDir.z + Input.GetAxis("Vertical")); // Get player move input.     
-
-            inputDir = Vector3.ClampMagnitude(inputDir, 1f);  // Clamp input magnitude to prevent diagnal move bug.
-
-            // Prevent diagnal move speed bug.
-            forward.Normalize();
-            right.Normalize();
-
             // Set move dir based input dir relative to where the camera is looking.                 
-            return (forward * (inputDir.z / m) + right * (inputDir.x / m));
+            return (forward * (inputDir.z) + right * (inputDir.x));
         }
         // Return no input if not grounded.
         return moveDir;
@@ -240,7 +222,7 @@ public class P_Controller : MonoBehaviour
 
 
 
-
+    
     public GameObject bodyTEMP;   
     void Slide()
     {
@@ -269,25 +251,18 @@ public class P_Controller : MonoBehaviour
             fallDur = staggerThreshold; // Set staggery fall conditions true.
             StaggeringFall();   // Stagger player.
         }
-
-    
-
-
+        
         Debug.Log(slideLock);
-
-
+        
         bodyTEMP.GetComponent<MeshRenderer>().material.color = Color.white;
         if (slideLock)
         {
-        
             curSpeed -= slideDeceleration * Time.deltaTime;
             bodyTEMP.GetComponent<MeshRenderer>().material.color = Color.red;
         }
-
-        
-
-
     }
+
+
 
 
 
@@ -312,6 +287,8 @@ public class P_Controller : MonoBehaviour
 
 
 
+
+
     // Changes speed of rotation based off of move speed state.
     private void UpdateRotationSpeed()
     {
@@ -328,9 +305,9 @@ public class P_Controller : MonoBehaviour
         }       
     }
 
-  
+     
 
-   
+
 
     // Returns velocity calculated from gravity and drag, 
     //  also keeps player from bouncing on slopes.
@@ -352,6 +329,8 @@ public class P_Controller : MonoBehaviour
 
 
 
+
+
     // Handles checks for active movement abilities without much complexity.
     private void MobilitySkillCheck()
     {
@@ -364,6 +343,8 @@ public class P_Controller : MonoBehaviour
                 (Mathf.Log(1f / (Time.deltaTime * Drag.z + 1)) / -Time.deltaTime)));
         }
     }
+
+
 
 
 
@@ -436,7 +417,7 @@ public class P_Controller : MonoBehaviour
 
 
     // Stops player momentum/staggers them when they fall for X duration.
-    public int fallDur = 0; // Counts how long player has been falling.    
+    private int fallDur = 0; // Counts how long player has been falling.    
     private bool StaggeringFall()
     {
         // Only count fall dur when falling.
