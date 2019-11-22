@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class Player_C : Humanoid
+public class PlayerHumanoid : Humanoid
 {
     [SerializeField] protected Camera cam;
     

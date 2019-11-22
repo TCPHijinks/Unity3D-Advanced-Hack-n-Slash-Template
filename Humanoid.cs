@@ -6,12 +6,14 @@ public class Humanoid : MonoBehaviour
 {
     protected GroundCheck gndCheck; // If grounded, incline checks, etc.
     protected CharacterController controller; // Movement handling.
-    protected float Gravity { get; set; } = .07f;
+    protected float Gravity { get; set; } = .04f;
  
     private bool startedJmpCd = false; // Only allow one active jump cooldown.
     private bool canJump = true; // Jump cooldown lock.
 
-    public float jogSpd, runSpd;
+    private float curSpd, maxSpd;
+
+    public float jogSpd = 2, runSpd = 4;
     public float jumpAmount = 2, jumpCooldown = .4f;
 
 
@@ -37,7 +39,7 @@ public class Humanoid : MonoBehaviour
             moveVel.z = 0;
         }    
         else canJump = false; // Can't jump if not grounded. 
-
+        Debug.Log(controller.velocity.magnitude);
     }
 
 
@@ -62,11 +64,35 @@ public class Humanoid : MonoBehaviour
     /// <param name="speed"></param>
     protected void Move(float speed)
     {
-        if(gndCheck.Grounded)
-            moveVel += (transform.forward * speed) * Time.deltaTime;        
+        float curVel = .5f * Vector3.Magnitude(new Vector3(controller.velocity.x, 0, controller.velocity.z));
+        float gndSpdMod = .5f * (gndCheck.GroundSlope * .4f);
+            
+        // Max speed more/less depending on terrain incline.
+        if (controller.velocity.y >= 0)
+            maxSpd = (speed + curVel) - (gndSpdMod * .15f);  // Less speed if go up incline.
+        else maxSpd = (speed + curVel) + (gndSpdMod * .15f); // More speed if down incline.
+
+        // Limit min/top max speed.
+        if (maxSpd < 0) maxSpd = 0;
+        else if (maxSpd > speed * 2) maxSpd = speed * 2;
+
+        if (gndCheck.Grounded)
+            moveVel += (transform.forward * maxSpd) * Time.deltaTime;        
     }
 
+    private float MoveAccel(bool moving)
+    {
+        // Cur velocity magnitude -> faster accel, greater incline -> slower accel
+        curSpd = ( ((curSpd * .25f) + controller.velocity.magnitude) - (gndCheck.GroundSlope * .25f) ) * Time.deltaTime;
+        
+        // Limit max/min speed.
+        if (curSpd > maxSpd) 
+            curSpd = maxSpd;
+        else if (curSpd < 0) 
+            curSpd = 0;
 
+        return curSpd;
+    }
     
     /// <summary>
     /// Appply gravity to vertical move velocity.
