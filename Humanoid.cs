@@ -6,16 +6,16 @@ public class Humanoid : MonoBehaviour
 {
     protected GroundCheck gndCheck; // If grounded, incline checks, etc.
     protected CharacterController controller; // Movement handling.
-    protected float Gravity { get; set; } = .04f;
+    protected float Gravity { get; set; } = .032f;
  
-    private bool startedJmpCd = false; // Only allow one active jump cooldown.
-    private bool canJump = true; // Jump cooldown lock.
+    [HideInInspector] public bool StartedJmpCd { get; private set; } = false; // Only allow one active jump cooldown.
+    [HideInInspector] public bool CanJump { get; private set; } = true; // Jump cooldown lock.
+    [HideInInspector] public float CurSpd { get; private set; }
+    [HideInInspector] public float MaxSpd { get; private set; }
 
-    private float curSpd, maxSpd;
-
-    public float jogSpd = 2, runSpd = 4;
-    public float jumpAmount = 2, jumpCooldown = .4f;
-
+    public float jogSpd = 1.45f, runSpd = 2f;
+    public float jumpAmount = 0.35f, jumpCooldown = 0.8f;
+    public float accelMod = 10; // Used to calculate cur speed.
 
     void Awake()
     {
@@ -27,11 +27,12 @@ public class Humanoid : MonoBehaviour
     // Update is called once per frame
     protected void Update()
     {      
-        if (gndCheck.Grounded && !canJump) // Start jump cooldown once grounded.
+        SetCurSpeed(MaxSpd > 0, CurSpd, MaxSpd);
+        GravityCalc(Gravity);
+
+        if (gndCheck.Grounded && !CanJump) // Start jump cooldown once grounded.
             StartCoroutine(JumpCooldown(jumpCooldown));
 
-        SetCurSpeed(maxSpd > 0, curSpd, maxSpd);
-        GravityCalc(Gravity);
         ApplyMoveVelocity();
 
         if (gndCheck.Grounded) // If grounded, limit move speed.
@@ -39,11 +40,10 @@ public class Humanoid : MonoBehaviour
             moveVel.x = 0;
             moveVel.z = 0;
         }    
-        else canJump = false; // Can't jump if not grounded. 
-        Debug.Log(controller.velocity.magnitude);
+        else CanJump = false; // Can't jump if not grounded. 
     }
 
-
+    [SerializeField] private float rotSpdPenalty = .4f;
     /// <summary>
     /// Rotates humanoid to look at target position.
     /// </summary>
@@ -52,10 +52,13 @@ public class Humanoid : MonoBehaviour
     /// <param name="rotSpeed"></param>
     protected void Rotate(Vector3 newDir, int dampening, int rotSpeed)
     {
-        Vector3 curMoveDir = Vector3.Lerp(transform.position, newDir, dampening);
+        // Greater speed decreases turn speed.
+        float spdRotPenalty = CurSpd * rotSpdPenalty; // Used on dampening & rotation speed.     
+        
+        Vector3 curMoveDir = Vector3.Lerp(transform.position, newDir, (dampening + spdRotPenalty));
         // Lerp from cur rot to new one.
         transform.rotation = (Quaternion.Slerp(transform.rotation,
-               Quaternion.LookRotation(new Vector3(curMoveDir.x, 0, curMoveDir.z)), rotSpeed * Time.deltaTime));
+               Quaternion.LookRotation(new Vector3(curMoveDir.x, 0, curMoveDir.z)), (rotSpeed - spdRotPenalty) * Time.deltaTime));
     }
 
 
@@ -73,19 +76,23 @@ public class Humanoid : MonoBehaviour
     {    
         // Max speed more/less depending on terrain incline.
         if (controller.velocity.y >= 0)
-            maxSpd =  (speed + CurVel) - GndSpdMod; // Less top speed if go up incline.
-        else maxSpd = (speed + CurVel) + GndSpdMod; // More top speed if down incline.
+            MaxSpd =  (speed + CurVel) - GndSpdMod; // Less top speed if go up incline.
+        else MaxSpd = (speed + CurVel) + GndSpdMod; // More top speed if down incline.
 
-        // Limit min/top max speed.
-        if (maxSpd < 0) maxSpd = 0;
-        else if (maxSpd > speed * 2) maxSpd = speed * 2;
+        // Limit min/top max speed.     
+        if(speed != 0)
+        {
+            if (MaxSpd < 0) MaxSpd = 0;
+            else if (MaxSpd > speed * 1.6f) 
+                MaxSpd = speed * 1.6f;
+        }
+       
 
         if (gndCheck.Grounded)
-            moveVel += (transform.forward * curSpd) * Time.deltaTime;        
+            moveVel += (transform.forward * CurSpd) * Time.deltaTime;        
     }
 
 
-    public float accelMod = 1;
     /// <summary>
     /// Accel/Decel for current speed.
     /// </summary>
@@ -96,7 +103,7 @@ public class Humanoid : MonoBehaviour
     private void SetCurSpeed(bool moving, float curSpeed, float maxBaseSpd)
     {
         float acclBonus = 0;
-        if (maxBaseSpd <= maxSpd) // Down slope - accel faster.
+        if (maxBaseSpd <= MaxSpd) // Down slope - accel faster.
             acclBonus += (CurVel + GndSpdMod) / 3;
         else acclBonus -= (CurVel +  GndSpdMod) / 3;
             
@@ -105,11 +112,11 @@ public class Humanoid : MonoBehaviour
         else curSpeed -= (accelMod + acclBonus) * Time.deltaTime;
                 
         // Limit min/max speed.
-        if (curSpeed > maxSpd)
-            curSpeed = maxSpd;
-        else if (curSpd < 0)
+        if (curSpeed > MaxSpd)
+            curSpeed = MaxSpd;
+        else if (curSpeed < 0)
             curSpeed = 0;
-        curSpd = curSpeed;
+        CurSpd = curSpeed;
     }
     
 
@@ -130,15 +137,15 @@ public class Humanoid : MonoBehaviour
       //  Debug.Log(gndCheck.Grounded);
     }
 
-  
+
     /// <summary>
-    /// If not on cooldown, add jump force to vertical move velocity.
+    /// If not on cooldown, add jump force to vertical move velocity & give small dist boost.
     /// </summary>
     /// <param name="amount"></param>
     /// <param name="cooldown"></param>
     protected void Jump()
     {       
-        if (!canJump || !gndCheck.Grounded) return;
+        if (!CanJump || !gndCheck.Grounded) return;
         moveVel.y += jumpAmount;
     }
 
@@ -150,12 +157,12 @@ public class Humanoid : MonoBehaviour
     /// <returns></returns>
     private IEnumerator JumpCooldown(float cooldown)
     {
-        if (!startedJmpCd) // Cooldown once.
+        if (!StartedJmpCd) // Cooldown once.
         {
-            startedJmpCd = true;
+            StartedJmpCd = true;
             yield return new WaitForSeconds(cooldown);
-            canJump = true;
-            startedJmpCd = false;
+            CanJump = true;
+            StartedJmpCd = false;
         }       
     }
 
@@ -165,7 +172,7 @@ public class Humanoid : MonoBehaviour
     /// </summary>
     private void ApplyMoveVelocity()
     {
-        if(maxSpd == 0)
+        if(MaxSpd == 0)
         {
             moveVel.x = 0;
             moveVel.z = 0;
