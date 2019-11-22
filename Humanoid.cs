@@ -30,6 +30,7 @@ public class Humanoid : MonoBehaviour
         if (gndCheck.Grounded && !canJump) // Start jump cooldown once grounded.
             StartCoroutine(JumpCooldown(jumpCooldown));
 
+        SetCurSpeed(maxSpd > 0, curSpd, maxSpd);
         GravityCalc(Gravity);
         ApplyMoveVelocity();
 
@@ -57,43 +58,61 @@ public class Humanoid : MonoBehaviour
                Quaternion.LookRotation(new Vector3(curMoveDir.x, 0, curMoveDir.z)), rotSpeed * Time.deltaTime));
     }
 
-    private Vector3 moveVel = Vector3.zero;
+
+    private float CurVel => .5f * Vector3.Magnitude
+        (new Vector3(controller.velocity.x, 0, controller.velocity.z));     // Horizontal velocity.
+    private float GndSpdMod => (.5f * (gndCheck.GroundSlope * .4f)) * .15f; // Terrain incline/decline speed modifier.
+    private Vector3 moveVel = Vector3.zero;                                 // Direction to move.
+
+
     /// <summary>
     /// Apply move speed to horizontal move velocity.
     /// </summary>
     /// <param name="speed"></param>
     protected void Move(float speed)
-    {
-        float curVel = .5f * Vector3.Magnitude(new Vector3(controller.velocity.x, 0, controller.velocity.z));
-        float gndSpdMod = .5f * (gndCheck.GroundSlope * .4f);
-            
+    {    
         // Max speed more/less depending on terrain incline.
         if (controller.velocity.y >= 0)
-            maxSpd = (speed + curVel) - (gndSpdMod * .15f);  // Less speed if go up incline.
-        else maxSpd = (speed + curVel) + (gndSpdMod * .15f); // More speed if down incline.
+            maxSpd =  (speed + CurVel) - GndSpdMod; // Less top speed if go up incline.
+        else maxSpd = (speed + CurVel) + GndSpdMod; // More top speed if down incline.
 
         // Limit min/top max speed.
         if (maxSpd < 0) maxSpd = 0;
         else if (maxSpd > speed * 2) maxSpd = speed * 2;
 
         if (gndCheck.Grounded)
-            moveVel += (transform.forward * maxSpd) * Time.deltaTime;        
+            moveVel += (transform.forward * curSpd) * Time.deltaTime;        
     }
 
-    private float MoveAccel(bool moving)
-    {
-        // Cur velocity magnitude -> faster accel, greater incline -> slower accel
-        curSpd = ( ((curSpd * .25f) + controller.velocity.magnitude) - (gndCheck.GroundSlope * .25f) ) * Time.deltaTime;
-        
-        // Limit max/min speed.
-        if (curSpd > maxSpd) 
-            curSpd = maxSpd;
-        else if (curSpd < 0) 
-            curSpd = 0;
 
-        return curSpd;
+    public float accelMod = 1;
+    /// <summary>
+    /// Accel/Decel for current speed.
+    /// </summary>
+    /// <param name="moving"></param>
+    /// <param name="curSpeed"></param>
+    /// <param name="maxBaseSpd"></param>
+    /// <returns></returns>
+    private void SetCurSpeed(bool moving, float curSpeed, float maxBaseSpd)
+    {
+        float acclBonus = 0;
+        if (maxBaseSpd <= maxSpd) // Down slope - accel faster.
+            acclBonus += (CurVel + GndSpdMod) / 3;
+        else acclBonus -= (CurVel +  GndSpdMod) / 3;
+            
+        if (moving)        
+             curSpeed += (accelMod + acclBonus) * Time.deltaTime;
+        else curSpeed -= (accelMod + acclBonus) * Time.deltaTime;
+                
+        // Limit min/max speed.
+        if (curSpeed > maxSpd)
+            curSpeed = maxSpd;
+        else if (curSpd < 0)
+            curSpeed = 0;
+        curSpd = curSpeed;
     }
     
+
     /// <summary>
     /// Appply gravity to vertical move velocity.
     /// </summary>
@@ -146,9 +165,11 @@ public class Humanoid : MonoBehaviour
     /// </summary>
     private void ApplyMoveVelocity()
     {
+        if(maxSpd == 0)
+        {
+            moveVel.x = 0;
+            moveVel.z = 0;
+        }
         controller.Move(moveVel);
     }
-
-
-
 }

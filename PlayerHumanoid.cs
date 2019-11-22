@@ -27,6 +27,8 @@ public class PlayerHumanoid : Humanoid
             else
                 Move(jogSpd);
         }
+        else
+            Move(0); // Idle.
 
         if (Input.GetKey(KeyCode.Space))
             Jump();
