@@ -6,7 +6,7 @@ public class Humanoid : MonoBehaviour
 {
     protected GroundCheck gndCheck; // If grounded, incline checks, etc.
     protected CharacterController controller; // Movement handling.
-    protected float Gravity { get; set; } = .032f;
+    public float Gravity = .032f;// { get; set; } = .032f;
  
     [HideInInspector] public bool StartedJmpCd { get; private set; } = false; // Only allow one active jump cooldown.
     [HideInInspector] public bool CanJump { get; private set; } = true; // Jump cooldown lock.
@@ -16,6 +16,8 @@ public class Humanoid : MonoBehaviour
     public float jogSpd = 1.45f, runSpd = 2f;
     public float jumpAmount = 0.35f, jumpCooldown = 0.8f;
     public float accelMod = 10; // Used to calculate cur speed.
+
+    private float _baseMaxSpd;
 
     void Awake()
     {
@@ -27,11 +29,13 @@ public class Humanoid : MonoBehaviour
     // Update is called once per frame
     protected void Update()
     {      
-        SetCurSpeed(MaxSpd > 0, CurSpd, MaxSpd);
+        SetCurSpeed(MaxSpd > 0, CurSpd);
         GravityCalc(Gravity);
 
         if (gndCheck.Grounded && !CanJump) // Start jump cooldown once grounded.
             StartCoroutine(JumpCooldown(jumpCooldown));
+        
+        moveVel += (transform.forward * CurSpd) * Time.deltaTime;
 
         ApplyMoveVelocity();
 
@@ -67,29 +71,35 @@ public class Humanoid : MonoBehaviour
     private float GndSpdMod => (.5f * (gndCheck.GroundSlope * .4f)) * .15f; // Terrain incline/decline speed modifier.
     private Vector3 moveVel = Vector3.zero;                                 // Direction to move.
 
-
+    private float _minMvSpd = .2f;
+    private float _prevMaxSpd = 0;
     /// <summary>
-    /// Apply move speed to horizontal move velocity.
+    /// Sets new dynamic max speed to allow movement.
     /// </summary>
-    /// <param name="speed"></param>
-    protected void Move(float speed)
-    {    
+    /// <param name="mxSpeed"></param>
+    protected void Move(float mxSpeed)
+    {
+        _baseMaxSpd = mxSpeed; // Save cur base max speed before modification.
+
+        float newMax = 0;
         // Max speed more/less depending on terrain incline.
-        if (controller.velocity.y >= 0)
-            MaxSpd =  (speed + CurVel) - GndSpdMod; // Less top speed if go up incline.
-        else MaxSpd = (speed + CurVel) + GndSpdMod; // More top speed if down incline.
+        if (mxSpeed > 0 && controller.velocity.y >= 0)
+            newMax = _minMvSpd + (mxSpeed + CurVel) - GndSpdMod; // Less top speed if go up incline.
+        else if (mxSpeed > 0)
+            newMax = _minMvSpd + (mxSpeed + CurVel) + GndSpdMod; // More top speed if down incline.
 
-        // Limit min/top max speed.     
-        if(speed != 0)
+        // Clamp min/top max speed.
+        newMax = Mathf.Clamp(newMax, 0, mxSpeed * 1.6f);
+
+        // Update max speed if significant difference.
+        if (Mathf.Abs(_prevMaxSpd - newMax) >= _minMvSpd)
         {
-            if (MaxSpd < 0) MaxSpd = 0;
-            else if (MaxSpd > speed * 1.6f) 
-                MaxSpd = speed * 1.6f;
-        }
-       
-
-        if (gndCheck.Grounded)
-            moveVel += (transform.forward * CurSpd) * Time.deltaTime;        
+            if (_baseMaxSpd > 0 && newMax < (jogSpd * .8f)) // Enforce not too slow.   
+                newMax = jogSpd * .8f;
+            
+            _prevMaxSpd = newMax;
+            MaxSpd = newMax;
+        }        
     }
 
 
@@ -100,22 +110,35 @@ public class Humanoid : MonoBehaviour
     /// <param name="curSpeed"></param>
     /// <param name="maxBaseSpd"></param>
     /// <returns></returns>
-    private void SetCurSpeed(bool moving, float curSpeed, float maxBaseSpd)
-    {
+    private void SetCurSpeed(bool moving, float curSpeed)
+    {        
+        // If in air, limit speed.
+        if (!gndCheck.Grounded)
+        {           
+            CurSpd = .2f + (Mathf.Clamp(CurVel * .005f, 0, .015f));            
+            return;
+        }
+
+       // Debug.Log("Max: " + MaxSpd + ", Cur: " + CurSpd) ;
         float acclBonus = 0;
-        if (maxBaseSpd <= MaxSpd) // Down slope - accel faster.
-            acclBonus += (CurVel + GndSpdMod) / 3;
-        else acclBonus -= (CurVel +  GndSpdMod) / 3;
+        // If base max spd < dynamic MaxSpd, then going down slope so increase max spd.
+        if (_baseMaxSpd <= MaxSpd) 
+             acclBonus += (CurVel + GndSpdMod) / 3; // Increase dynamic max speed (down slope).
+        else acclBonus -= (CurVel + GndSpdMod) / 3; // Decrease it (up slope).
             
-        if (moving)        
-             curSpeed += (accelMod + acclBonus) * Time.deltaTime;
-        else curSpeed -= (accelMod + acclBonus) * Time.deltaTime;
-                
-        // Limit min/max speed.
-        if (curSpeed > MaxSpd)
+        // Accel if slower than max, decel if too fast.
+        if (gndCheck.Grounded && moving && curSpeed < MaxSpd)
+            curSpeed += (accelMod + acclBonus) * Time.deltaTime;
+        else if(curSpeed > MaxSpd || !gndCheck.Grounded)
+            curSpeed -= (accelMod + (acclBonus * 1.5f)) * Time.deltaTime;
+        
+        // Round down to max speed if close enough.
+        if (Mathf.Abs(curSpeed - MaxSpd) < .2 && curSpeed > MaxSpd)
             curSpeed = MaxSpd;
         else if (curSpeed < 0)
             curSpeed = 0;
+
+        // Update applied current speed.
         CurSpd = curSpeed;
     }
     
