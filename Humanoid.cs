@@ -6,6 +6,8 @@ public class Humanoid : MonoBehaviour
 {
     protected GroundCheck gndCheck; // If grounded, incline checks, etc.
     protected CharacterController controller; // Movement handling.
+    private HumanoidMoveStd stdMovement;      // Handles generall non-combat movement.
+
     public float Gravity = .032f;// { get; set; } = .032f;
  
     [HideInInspector] public bool StartedJmpCd { get; private set; } = false; // Only allow one active jump cooldown.
@@ -17,19 +19,21 @@ public class Humanoid : MonoBehaviour
     public float jumpAmount = 0.35f, jumpCooldown = 0.8f;
     public float accelMod = 10; // Used to calculate cur speed.
 
+
     private float _baseMaxSpd;
 
     void Awake()
     {
         gndCheck = GetComponent<GroundCheck>(); 
         controller = GetComponent<CharacterController>();
+        stdMovement = GetComponent<HumanoidMoveStd>();
     }
 
 
     // Update is called once per frame
     protected void Update()
     {      
-        SetCurSpeed(MaxSpd > 0, CurSpd);
+        CurSpd = GetCurSpdAccel(MaxSpd > 0, CurSpd);
         GravityCalc(Gravity);
 
         if (gndCheck.Grounded && !CanJump) // Start jump cooldown once grounded.
@@ -68,7 +72,7 @@ public class Humanoid : MonoBehaviour
 
     private float CurVel => .5f * Vector3.Magnitude
         (new Vector3(controller.velocity.x, 0, controller.velocity.z));     // Horizontal velocity.
-    private float GndSpdMod => (.5f * (gndCheck.GroundSlope * .4f)) * .15f; // Terrain incline/decline speed modifier.
+    private float GndSpdMod => (.33f * (gndCheck.GroundSlope * .4f)) * .15f; // Terrain incline/decline speed modifier.
     private Vector3 moveVel = Vector3.zero;                                 // Direction to move.
 
     private float _minMvSpd = .2f;
@@ -79,47 +83,25 @@ public class Humanoid : MonoBehaviour
     /// <param name="mxSpeed"></param>
     protected void Move(float mxSpeed)
     {
-        _baseMaxSpd = mxSpeed; // Save cur base max speed before modification.
-
-        float newMax = 0;
-        // Max speed more/less depending on terrain incline.
-        if (mxSpeed > 0 && controller.velocity.y >= 0)
-            newMax = _minMvSpd + (mxSpeed + CurVel) - GndSpdMod; // Less top speed if go up incline.
-        else if (mxSpeed > 0)
-            newMax = _minMvSpd + (mxSpeed + CurVel) + GndSpdMod; // More top speed if down incline.
-
-        // Clamp min/top max speed.
-        newMax = Mathf.Clamp(newMax, 0, mxSpeed * 1.6f);
-
-        // Update max speed if significant difference.
-        if (Mathf.Abs(_prevMaxSpd - newMax) >= _minMvSpd)
-        {
-            if (_baseMaxSpd > 0 && newMax < (jogSpd * .8f)) // Enforce not too slow.   
-                newMax = jogSpd * .8f;
-            
-            _prevMaxSpd = newMax;
-            MaxSpd = newMax;
-        }        
+        // Update max speed for standard movement, and save original base max move speed for acceleration.
+        MaxSpd = stdMovement.Move(mxSpeed, jogSpd, _minMvSpd, CurVel, GndSpdMod, ref _prevMaxSpd);
+        _baseMaxSpd = mxSpeed; 
     }
 
 
     /// <summary>
-    /// Accel/Decel for current speed.
+    /// Returns current speed after applying either Acceleration or Deceleration.
     /// </summary>
     /// <param name="moving"></param>
     /// <param name="curSpeed"></param>
     /// <param name="maxBaseSpd"></param>
     /// <returns></returns>
-    private void SetCurSpeed(bool moving, float curSpeed)
+    private float GetCurSpdAccel(bool moving, float curSpeed)
     {        
         // If in air, limit speed.
-        if (!gndCheck.Grounded)
-        {           
-            CurSpd = .2f + (Mathf.Clamp(CurVel * .005f, 0, .015f));            
-            return;
-        }
-
-       // Debug.Log("Max: " + MaxSpd + ", Cur: " + CurSpd) ;
+        if (!gndCheck.Grounded)                            
+            return .2f + (Mathf.Clamp(CurVel * .005f, 0, .015f));        
+             
         float acclBonus = 0;
         // If base max spd < dynamic MaxSpd, then going down slope so increase max spd.
         if (_baseMaxSpd <= MaxSpd) 
@@ -139,7 +121,7 @@ public class Humanoid : MonoBehaviour
             curSpeed = 0;
 
         // Update applied current speed.
-        CurSpd = curSpeed;
+        return curSpeed;
     }
     
 
