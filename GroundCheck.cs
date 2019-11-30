@@ -14,18 +14,9 @@ public class GroundCheck : MonoBehaviour
 
     void OnControllerColliderHit(ControllerColliderHit hit) => HitNormal = hit.normal;
 
-   
 
-
-    // Start is called before the first frame update
     void Start()
     {
         controller = GetComponent<CharacterController>();
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
     }
 }
