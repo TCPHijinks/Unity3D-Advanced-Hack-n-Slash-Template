@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class JumpEffect : Effect
-{      
+{
+    private float jmpAmount;
     public override void DoModify()
-    {
-        modAmount = 20;
-        creatureModifyable.JmpAmountEffectMod += modAmount;
+    {       
+        creatureModifyable.JmpAmountEffectMod += jmpAmount;
     }
 
     public override void UndoModify()
     {
-        creatureModifyable.JmpAmountEffectMod -= modAmount;
+        creatureModifyable.JmpAmountEffectMod -= jmpAmount;
     }
 }

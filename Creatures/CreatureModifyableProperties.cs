@@ -6,7 +6,13 @@ using UnityEngine;
 /// Modular exposure of modifyable variables specifically for IEffects usage.
 /// </summary>
 public class CreatureModifyableProperties : MonoBehaviour
-{  
+{
+    public Creature Creature { get; private set; }
+    private void Awake()
+    {
+        Creature = GetComponent<Creature>();
+    }
+
     /// <summary>
     /// Maximum speed modifier for effects that affect how max a creature can move.
     /// </summary>
@@ -36,6 +42,9 @@ public class CreatureModifyableProperties : MonoBehaviour
     /// Modifier for increasing/decreasing the maximum jump height of a creature.
     /// </summary>
     [HideInInspector] public float JmpAmountEffectMod { get; set; } = 0;
+   
+    [HideInInspector] public float GravityEffectMod { get; set; } = 0;
+
 
     [HideInInspector] public int StatPhysicalMod { get; set; } = 0;
     [HideInInspector] public int StatCharismaMod { get; set; } = 0;

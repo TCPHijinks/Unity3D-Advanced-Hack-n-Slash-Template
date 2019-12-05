@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class MaxHealthEffect : Effect
 {
+    private float modAmount;
     public override void DoModify()
     {
         creatureModifyable.MaxHpEffectMod += (int)modAmount;

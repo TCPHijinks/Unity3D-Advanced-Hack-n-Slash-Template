@@ -35,7 +35,7 @@ public class HumanoidAnim : MonoBehaviour
 
 
     public void UpateHumanoidAnims(bool doJmpCd, bool grounded, bool block, bool inCombat,
-        bool attkFin, float curSpd, int attkStage)
+         float curSpd, int attkStage, bool running, float horizontal, float vertical)
     {       
         // Jumping if can't jump and not on cooldown after landing.
         bool jumping = !grounded && !doJmpCd;
@@ -45,6 +45,8 @@ public class HumanoidAnim : MonoBehaviour
         anim.SetBool("InCombat", inCombat);
         anim.SetInteger("Attack", attkStage);
         anim.SetBool("Block", block);
-        anim.SetBool("AttkFin", attkFin);
+        anim.SetBool("Running", running);
+        anim.SetFloat("Horizontal", horizontal);
+        anim.SetFloat("Vertical", vertical);
     }  
 }

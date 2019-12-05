@@ -2,90 +2,87 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class HumanoidPlayer : Humanoid
+public class HumanoidPlayer : MonoBehaviour
 {
+    [SerializeField] private Humanoid humanoid;
     [SerializeField] private Camera cam;
     [SerializeField] private int rotDampening = 99;
-    
-    [SerializeField] float defaultMoveSpd = .7f, runMoveSpd = 1.5f;
 
 
+
+
+
+    private void Start()
+    {
+        humanoid = GetComponent<Humanoid>();
+    }
    
 
-    new void Update()
-    {
-        
-      
-        // Rotates player to face Input direction.
-        Rotate(InputMoveDir(), rotDampening, RotationSpeed);
 
+
+
+    void Update()
+    {
+
+        if (Input.GetKeyDown(KeyCode.R) && humanoid.InCombat)
+            humanoid.InCombat = false;
+        else if (!humanoid.InCombat && (Input.GetKeyDown(KeyCode.R) || humanoid.Blocking || Input.GetMouseButtonDown(0)))
+            humanoid.InCombat = true;
+
+
+        Vector3 MoveDir = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
+
+        bool running = false;
         // Update player move states (speed) based on button input.
-        if (MoveInputPressed)
-        {            
-            if (Input.GetButton("Run"))
+        if (MoveDir != Vector3.zero)
+        {
+            if (Input.GetButton("Run") && humanoid.Grounded)
             {
-                baseMoveStateMaxSpd = runMoveSpd;
+                running = true;
+                humanoid.SetMoveState(Humanoid.moveEnum.Run, MoveDir);
             }
+            else if(humanoid.Grounded)
+            {
+                humanoid.SetMoveState(Humanoid.moveEnum.Walk, MoveDir);
+            }
+            else if(!humanoid.Grounded)
+            {
+                humanoid.SetMoveState(Humanoid.moveEnum.Jump, MoveDir);
+            }
+           
+
+            if (humanoid.Blocking && !running)
+                humanoid.Rotate(cam.transform.forward, rotDampening);
             else
-                baseMoveStateMaxSpd = defaultMoveSpd;
+                humanoid.RotateRelative(new Vector3(MoveDir.x, 0, MoveDir.z), cam.transform, rotDampening);
         }
         else
         {
-            baseMoveStateMaxSpd = 0; // Idle.
+            humanoid.SetMoveState(Humanoid.moveEnum.Idle, MoveDir);
         }
-            
+          
 
         // Try to jump on key press. *********
         if (Input.GetKey(KeyCode.Space))
-            Jump();
+            humanoid.Jump();
 
-        // Humanoid will long jump if holding jump key. **********
-        amLongJmping = Input.GetKey(KeyCode.Space);
 
-        // Attack when attack button clicked. ***********
+        // Humanoid will long jump if holding jump key. ******
+        humanoid.amLongJmping = Input.GetKey(KeyCode.Space);
+
+        // Attack when attack button clicked. 
         if (Input.GetMouseButtonDown(0))
         {          
-            if (baseMoveStateMaxSpd > 0)
-                Attack(false, 3);
-            else Attack(true, 2);
+            if (humanoid.BaseMoveStateMaxSpd > 0)
+                humanoid.Attack(false);
+            else humanoid.Attack(true);
         }            
-
-        // Block with shield when block button clicked. *********
-        if (Input.GetMouseButton(1))
-            Blocking = true;
-        else
-            Blocking = false;
-
-        // Update base humanoid.
-        base.Update();
-    }
-
-
-    /// <summary>
-    /// Return movement direction using player input and camera rotation.
-    /// </summary>
-    /// <returns>Vector3</returns>
-    private Vector3 InputMoveDir()
-    {
-        // Don't update if in air or not pressing key.
-        if (!MoveInputPressed)
-            return transform.forward;
-
-        Vector3 forward, right;
-        Vector3 inputDir = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical"));
-
-        // Movement dirs are relative to the player camera.
-        forward = cam.transform.forward.normalized;
-        right = cam.transform.right.normalized;
         
-        // Return new movement direction relative to cam.
-        return (forward * inputDir.z + right * inputDir.x);
+
+        // Block with shield when block button clicked.
+        if (Input.GetMouseButton(1))
+            humanoid.Blocking = true;
+        else
+            humanoid.Blocking = false;
     }
-
-
-
-    /// <summary>
-    /// Returns true if the player is pressing either the Horizontal or Vertical keyboard input buttons.
-    /// </summary>
-    public bool MoveInputPressed => Input.GetAxis("Horizontal") != 0 || Input.GetAxis("Vertical") != 0;
 }

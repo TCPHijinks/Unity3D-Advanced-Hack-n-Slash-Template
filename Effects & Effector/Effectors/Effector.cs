@@ -4,6 +4,10 @@ using UnityEngine;
 
 public class Effector : MonoBehaviour
 {
+    private void Start()
+    {
+        UseEffector(target.GetComponent<Creature>());
+    }
     // Take a target.
     // Apply all IEffectable to target.
     // IEffectable manages its own deletion.
@@ -20,7 +24,6 @@ public class Effector : MonoBehaviour
         foreach (Effect effect in Effects)
         {
             target.gameObject.AddComponent(effect.GetType());
-        }
-              
+        }              
     }
 }

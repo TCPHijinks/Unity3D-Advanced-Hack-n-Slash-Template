@@ -12,8 +12,6 @@ public class CameraOrbit : MonoBehaviour
     public Transform player;
     public Transform _camera;
 
-    private Camera cam;
-
     private float distance = 10.0f;
     private float currentX = 0f;
     private float currentY = 0f;
@@ -26,8 +24,7 @@ public class CameraOrbit : MonoBehaviour
     void Start()
     {
         //Set up things on the start method
-        _camera = transform;
-        cam = Camera.main;
+        _camera = transform;    
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
@@ -38,7 +35,7 @@ public class CameraOrbit : MonoBehaviour
     private void Update()
     {
         currentX += Input.GetAxis("Mouse X") * sensitivityX;
-        currentY += Input.GetAxis("Mouse Y") * sensitivityY;        
+        currentY -= Input.GetAxis("Mouse Y") * sensitivityY;        
         distance -= Input.GetAxis("Mouse ScrollWheel") * 5;
 
         currentY = Mathf.Clamp(currentY, Y_ANGLE_MIN, Y_ANGLE_MAX);

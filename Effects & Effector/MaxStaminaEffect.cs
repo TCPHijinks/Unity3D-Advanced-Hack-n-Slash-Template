@@ -3,7 +3,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class MaxStaminaEffect : Effect
-{    
+{
+    private float modAmount;
     public override void DoModify()
     {
         creatureModifyable.MaxSpEffectMod += (int)modAmount;

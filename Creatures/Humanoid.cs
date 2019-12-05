@@ -4,18 +4,9 @@ using UnityEngine;
 
 public class Humanoid : Creature
 {
-    private HumanoidAnim anim;              // Handles the animator.
-
-    private Vector3 moveVel = Vector3.zero; // Direction to move.
+    private HumanoidAnim anim;   
     
-
     #region Movement.
-
-    /// <summary>
-    /// If do a Jump cooldown after just becoming grounded.
-    /// </summary>  
-    private bool DoJmpCd = false;
-
     /// <summary>
     /// Current acceleration/deceleration to 'dynamix max speed'.
     /// </summary>
@@ -24,7 +15,7 @@ public class Humanoid : Creature
     /// <summary>
     /// Amount to jump and following cooldown upon becoming grounded.
     /// </summary>
-    [SerializeField] private float baseJmpAmount = 0.35f, jmpCd = 0.8f;
+    [SerializeField] private float baseJmpAmount = 0.2f, jmpCd = 0.8f;
     /// <summary>
     /// Maximum jump height, calculated using 'base jump amount' and effect modifiers.
     /// </summary>
@@ -34,75 +25,36 @@ public class Humanoid : Creature
     }
     #endregion
 
-    
-    #region Combat
 
-    /// <summary>
-    /// If the humanoid is in a combat stance (i.e. weapon drawn).
-    /// </summary>
-    public bool InCombat { get; protected set; } = true;
-    /// <summary>
-    /// If the humanoid is currently blocking.
-    /// </summary>
-    public bool Blocking { get; protected set; } = false;
-    /// <summary>
-    /// Attacks can have combos in the animator. When Attack(), it increases to continue the combo.
-    /// </summary>
-    private int AttkComboStage { get; set; } = 0;
-    #endregion
-    
 
-    /// <summary>
-    /// Calculates and returns current horizontal humanoid velocity.
-    /// </summary>
-    private float HorizontalVel => .5f * Vector3.Magnitude(new Vector3(cControl.velocity.x, 0, cControl.velocity.z));
-
-    /// <summary>
-    /// Calculates modifier for terrain incline. ****** REDO ***********
-    /// </summary>
-    private float GndInclineSpdMod => (.33f * (gndCheck.GroundSlope * .4f)) * .15f;
-
-    
 
 
     new void Awake()
     {        
-        base.Awake();                  
+        base.Awake();
         anim = GetComponent<HumanoidAnim>();
     }
 
+    
        
 
 
-    protected void Update()
-    {
+    new void Update()
+    {        
+        base.Update();
         SetMaxSpdTerrainMod();
-        // Calculate current speed using velocity to reach max speed.
-        SetCurSpdAccel(DynamicMaxSpd > 0);
-
-        // Apply gravity to humanoid.
-        GravityCalc(.032f);
-
-        // Jump cooldown once after become grounded after being in air.
-        StartCoroutine(JumpCooldown(jmpCd));
-               
-        
-        // Apply in-air falling/jumping logic, then horizontal movement.
-        JmpAndFallVelocity();
-        ApplyMoveVelocity();
-
-        // If grounded, reset vertical velocity after moving before next calc.
-        if (gndCheck.Grounded) 
-        {
-            moveVel.x = 0;
-            moveVel.z = 0;
-        }
-        else DoJmpCd = true; // Do a jump cooldown when next grounded.
        
-        // Update animator's property values.
+        SetCurSpdAccel(DynamicMaxSpd > 0); // Calc and apply cur accel.       
+            
+        JmpAndFallVelocity();
+
+        MoveHumanoid();
+
         AttackStageUpdate();
-        anim.UpateHumanoidAnims(DoJmpCd, gndCheck.Grounded, Blocking, InCombat, _attkFin, CurSpdToMax, AttkComboStage);
+
+        anim.UpateHumanoidAnims(canJmp, Grounded, Blocking, InCombat,  CurSpdToMax, AttkComboStage, BaseMoveStateMaxSpd == runMoveSpd, cmbtAnimDir.x, cmbtAnimDir.z);
     }
+   
 
 
 
@@ -110,15 +62,19 @@ public class Humanoid : Creature
     /// <summary>
     /// Jump if grounded and not on cooldown.
     /// </summary>
-    protected void Jump()
-    {
-        if (!DoJmpCd && gndCheck.Grounded) moveVel.y += JmpAmount;
+    public void Jump()
+    {      
+        if (canJmp && Grounded)
+        {            
+            moveVel.y = JmpAmount;
+            StartCoroutine(JumpCooldown(jmpCd));
+        }
     }
 
 
 
 
-    bool _doingJmpCd = false; // Lock for cooldown so only run once when land.
+    
     /// <summary>
     /// Set can't jump until cooldown time end.
     /// </summary>
@@ -127,27 +83,22 @@ public class Humanoid : Creature
     private IEnumerator JumpCooldown(float cooldown)
     {
         // Cooldown when just become grounded, and not already doing a cooldown.
-        if (gndCheck.Grounded && DoJmpCd && !_doingJmpCd)
+        if (Grounded && canJmp)
         {
-            _doingJmpCd = true; // Is now on cooldown.
-
+            canJmp = false;      
             yield return new WaitForSeconds(cooldown);
-          
-            DoJmpCd = false;    // Can jump now, don't do a cooldown until next landed.
-            _doingJmpCd = false;// Not on cooldown anymore.
+            canJmp = true;
         }        
     }
+    private bool canJmp = true;
 
 
 
 
-    protected bool amLongJmping = false;               // If doing 'long jump' and Not a short one.
-    [SerializeField] private float shortJmpFall = 10f; // Extra gravity while going up if doing 'short jump'.
-    [SerializeField] private float normFallMod = 13f;  // Extra gravity when falling down.    
     private void JmpAndFallVelocity()
-    {
-        if (!gndCheck.Grounded)
-        {
+    {      
+        if (!Grounded)
+        {          
             // Stop accelerating up quicker if not long jumping.
             if (cControl.velocity.y > 0 && !amLongJmping)            
                 moveVel.y -= shortJmpFall * Time.deltaTime;
@@ -157,31 +108,102 @@ public class Humanoid : Creature
                 moveVel.y += 1.5f * Time.deltaTime;
 
             // Fall faster if falling down.
-            else if (cControl.velocity.y <= 0 && !gndCheck.Grounded)
+            else if (cControl.velocity.y <= 0 && !Grounded)
                 moveVel.y -= normFallMod * Time.deltaTime;
+        }  
+    }
+    [HideInInspector] public bool amLongJmping = false;// If doing 'long jump' and Not a short one.
+    [SerializeField] private float shortJmpFall = 10f; // Extra gravity while going up if doing 'short jump'.
+    [SerializeField] private float normFallMod = 13f;  // Extra gravity when falling down.    
+
+
+
+
+
+    public void SetMoveState(moveEnum moveState, Vector3 dirToMove)
+    {
+        cmbtAnimDir = dirToMove;
+        if (dirToMove == Vector3.zero) cmbtMoveDir = Vector3.zero;
+        else cmbtMoveDir = GetRelativeDir(dirToMove, transform);
+        switch(moveState)
+        {
+            case moveEnum.Idle:
+                BaseMoveStateMaxSpd = 0;
+                break;
+            case moveEnum.Walk:
+                BaseMoveStateMaxSpd = defaultMoveSpd;
+                break;
+            case moveEnum.Jump:
+                BaseMoveStateMaxSpd = JmpMoveSpd;
+                break;
+            default:
+                BaseMoveStateMaxSpd = runMoveSpd;
+                break;
         }
+    }
+    public enum moveEnum { Idle, Walk, Run, Jump }
+    Vector3 cmbtMoveDir, cmbtAnimDir;
+
+
+
+
+
+   
+
+    public void RotateRelative(Vector3 lookDir, Transform relativeTo, int dampening)
+    {       
+        lookDir = GetRelativeDir(lookDir, relativeTo);
+        ApplyRotation(lookDir, dampening);        
     }
 
 
 
 
-    [SerializeField] private float rotationSpdPenalty = .4f;
-    /// <summary>
-    /// Rotates humanoid to look at target position.
-    /// </summary>
-    /// <param name="newDir"></param>
-    /// <param name="dampening"></param>
-    /// <param name="rotSpeed"></param>
-    protected void Rotate(Vector3 newDir, int dampening, int rotSpeed)
+
+    public void Rotate(Vector3 lookDir, int dampening)
+    {        
+        ApplyRotation(lookDir, dampening);
+    }
+    
+
+
+
+
+    private void ApplyRotation(Vector3 lookDir, int dampening)
     {
         // Greater speed decreases turn speed.
         float spdRotPenalty = CurSpdToMax * rotationSpdPenalty; // Used on dampening & rotation speed.     
 
-        Vector3 curMoveDir = Vector3.Lerp(transform.position, newDir, (dampening + spdRotPenalty));
+        Vector3 curMoveDir = Vector3.Lerp(transform.position, lookDir, (dampening + spdRotPenalty));
         // Lerp from cur rot to new one.
         transform.rotation = (Quaternion.Slerp(transform.rotation,
-               Quaternion.LookRotation(new Vector3(curMoveDir.x, 0, curMoveDir.z)), (rotSpeed - spdRotPenalty) * Time.deltaTime));        
+               Quaternion.LookRotation(new Vector3(curMoveDir.x, 0, curMoveDir.z)), (RotationSpeed - spdRotPenalty) * Time.deltaTime));
     }
+    [SerializeField] private float rotationSpdPenalty = .4f;
+
+
+
+
+
+    /// <summary>
+    /// Return movement direction using player input and camera rotation.
+    /// </summary>
+    /// <returns>Vector3</returns>
+    private Vector3 GetRelativeDir(Vector3 direction, Transform relativeTo)
+    {
+        // Don't update if in air or not pressing key.
+        if (direction == Vector3.zero) return transform.forward;
+
+        // Movement dirs are relative to the player camera.
+        Vector3 forward = relativeTo.forward.normalized;
+        Vector3 right = relativeTo.right.normalized;
+
+        // Return new movement direction relative to cam.
+        return (forward * direction.z + right * direction.x);
+    }
+
+
+
 
 
     /// <summary>
@@ -189,40 +211,40 @@ public class Humanoid : Creature
     /// </summary>     
     public void SetMaxSpdTerrainMod() 
     {
-        float newMax = -((int)gndCheck.GroundSlope * baseMoveStateMaxSpd / 100);
-        if(Mathf.Abs(terrainMaxSpdMod - newMax) > .4f) terrainMaxSpdMod = newMax;
+        float newMax = -((int)gndCheck.GroundSlope * BaseMoveStateMaxSpd / 100);
+        if (Mathf.Abs(terrainMaxSpdMod - newMax) > .4f) terrainMaxSpdMod = newMax;
     }
+    
 
 
 
-
-    [SerializeField] private float curAccelToMax = 10;
+    
     /// <summary>
     /// Returns current speed after applying either Acceleration or Deceleration.
     /// </summary>
-    /// <param name="moving"></param>
-    /// <param name="curSpeed"></param>    
+    /// <param name="moving"></param> 
     /// <returns></returns>
     private void SetCurSpdAccel(bool moving) 
-    {        
-        // If in air, limit speed.
-        if (!gndCheck.Grounded)
+    {
+        // Limit speed when blocking.
+        if (Blocking && cmbtAnimDir.z < 0)
         {
-            CurSpdToMax = .3f + (Mathf.Clamp((HorizontalVel / 2) * .008f, 0, .015f));
-            return;
-        }         
-             
-        float acclBonus = 0;
-        // If base max spd < dynamic MaxSpd, then going down slope so increase max spd.
-        if ((DynamicMaxSpd - baseMoveStateMaxSpd) <= DynamicMaxSpd) // Base speed <= dynamic max speed (with modifiers)
-             acclBonus += (HorizontalVel + GndInclineSpdMod) / 3; // Increase dynamic max speed (down slope).
-        else acclBonus -= (HorizontalVel + GndInclineSpdMod) / 3; // Decrease it (up slope).
+            if (CurSpdToMax > DynamicMaxSpd * .75f)          
+                CurSpdToMax = DynamicMaxSpd * .75f;            
+        }
+        else if (Blocking && cmbtAnimDir.x != 0)
+        {
+            if (CurSpdToMax > DynamicMaxSpd * .8f)
+                CurSpdToMax = DynamicMaxSpd * .8f;
+        }
             
-        // Accel if slower than max, decel if too fast.
-        if (gndCheck.Grounded && moving && CurSpdToMax < DynamicMaxSpd)
-            CurSpdToMax += (curAccelToMax + acclBonus) * Time.deltaTime;
-        else if(CurSpdToMax > DynamicMaxSpd || !gndCheck.Grounded)
-            CurSpdToMax -= (curAccelToMax + (acclBonus * 1.5f)) * Time.deltaTime;
+
+
+        // Accel if cur spd slower than max, decel if too fast.
+        if (Grounded && moving && CurSpdToMax < DynamicMaxSpd)
+            CurSpdToMax += moveAccel * Time.deltaTime;
+        else if(CurSpdToMax > DynamicMaxSpd)
+            CurSpdToMax -= moveAccel * Time.deltaTime;
         
         // Round down to max speed if close enough.
         if (Mathf.Abs(CurSpdToMax - DynamicMaxSpd) < .2 && CurSpdToMax > DynamicMaxSpd)
@@ -230,102 +252,98 @@ public class Humanoid : Creature
         else if (CurSpdToMax < 0)
             CurSpdToMax = 0;
     }
-    
+    [SerializeField] private float moveAccel = 6f;
 
 
 
-    /// <summary>
-    /// Appply gravity to vertical move velocity.
-    /// </summary>
-    /// <param name="gravity"></param>
-    private void GravityCalc(float gravity)
-    {
-        moveVel.y -= gravity;
-
-        float terminalVel = 5 * -gravity;
-        if (moveVel.y < terminalVel) // Enforce max fall velocity.
-            moveVel.y = terminalVel;
-        // Limit gravity when grounded.
-        if (gndCheck.Grounded && moveVel.y < (terminalVel / 2)) 
-            moveVel.y = terminalVel / 2;
-    }
-
-       
 
 
     /// <summary>
     /// Move humanoid character using move velocity.
     /// </summary>
-    private void ApplyMoveVelocity()
-    {
+    private void MoveHumanoid()
+    {        
         // Apply horizontal movement.
-        moveVel += (transform.forward * CurSpdToMax) * Time.deltaTime;
+        if(!Blocking || BaseMoveStateMaxSpd == runMoveSpd)
+            moveVel += (transform.forward * CurSpdToMax) * Time.deltaTime;
+        else
+            moveVel += (cmbtMoveDir * CurSpdToMax) * Time.deltaTime;
 
         // Move humanoid, applying all horizontal and vertical forces.        
         cControl.Move(moveVel);
+
+        // Reset horizontal force for next calc.      
+        moveVel.x = 0;
+        moveVel.z = 0;
     }
 
 
 
 
-    private int _animAttkLayer;         // Animator layer thaht handles attacks.
-    private float _followUpAttkTime = 0;// Time humanoid has to follow-up their attack to combo.
-    private bool _attkFin = false, canCombo = false;
-    [SerializeField] private float timeToFollowUpAttk = 4; 
+         
     /// <summary>
     /// Increments attack combo state and resets timer to follower-up attack to prevent the combo (if any) breaking early.
     /// </summary>
     /// <param name="isCombo"></param>
-    /// <param name="animAttkLayer"></param>
-    protected void Attack(bool isCombo, int animAttkLayer)
-    {        
-        if (isCombo) canCombo = CurSpdToMax == 0;
+    public void Attack(bool isCombo)
+    {
+        if (!_canAttk) return;
+
+        // No combo if moving.
+        if (isCombo) isCombo = CurSpdToMax == 0;    
+
+        // If not a combo, reset combo.
+        if (!isCombo) AttkComboStage = 0;
+
+        // Set countdown window to allow follow-up attacks.
+        _followUpAttkTime = timeToFollowUpAttk; 
        
-        // Set anim layer that handles attk.
-        _animAttkLayer = animAttkLayer;
-
-        // If not just finished an attk combo, can attk.
-        if (!_attkFin) 
-        {
-            // Set countdown window to allow follow-up attacks.
-            _followUpAttkTime = timeToFollowUpAttk; 
-
-            if (canCombo)        // If a combo, stack attack stages.
-                AttkComboStage++;
-            else AttkComboStage = 1;// Otherwise, default to first attack in combo.          
-        }           
+        // Move to next stage of combo in animator.
+        AttkComboStage++;                      
     }
-
-
-
+    private float _followUpAttkTime = 0;// Time humanoid has to follow-up their attack to combo.
+    [SerializeField] private float timeToFollowUpAttk = 4;
+   
     
-    private bool _hasAttked = false;    
+
+
+
     /// <summary>
     /// Decrements follow-up attack countdown timer to end combo. 
-    /// Reset's the attack state and updates whether the attack combo just finished for the animator.
     /// </summary>
     private void AttackStageUpdate()
     {
         // Time until attack cannot have a follow-up.
         _followUpAttkTime  -= 5 * Time.deltaTime;
 
-        // Attk finished if attacked and ran out of time to follow-up or now idle.
-        if (AttkComboStage > 0 && (_followUpAttkTime <= 0 || _hasAttked))
+        // Reset combo if take too long to do follow-up attk.
+        if (AttkComboStage > 0 && _followUpAttkTime <= 0)
         {
-            _followUpAttkTime = timeToFollowUpAttk;
-            _attkFin = true;
+            _followUpAttkTime = timeToFollowUpAttk;       
             AttkComboStage = 0;
         }
 
-        // If idle state and has just attacked.
-        if (anim.LayerStateIdle(_animAttkLayer) && _attkFin)        
-            _attkFin = false;            
-        
-        // If not a combo, reset combo stage once started first attk stage.
-        if (!anim.LayerStateIdle(_animAttkLayer) && !canCombo)
-            AttkComboStage = 0;
-
-        // Has attked if now idle and finished an attack.
-        _hasAttked = !anim.LayerStateIdle(_animAttkLayer) && _attkFin;
+        // Do CD to prevent anim canceling, If attk, then move.
+        if(AttkComboStage > 0 && CurSpdToMax > 0)                  
+            StartCoroutine(IdleToRunAttkCooldown(.4f));        
     }
+
+
+
+
+
+    /// <summary>
+    /// Can't attack again until cooldown finishes.
+    /// </summary>
+    /// <returns>Returns that can attk on cooldown finish.</returns>
+    IEnumerator IdleToRunAttkCooldown(float length)
+    {
+        if (_canAttk)
+        {       
+            _canAttk = false;
+            yield return new WaitForSeconds(length);
+            _canAttk = true;          
+        }        
+    }
+    bool _canAttk = true;
 }

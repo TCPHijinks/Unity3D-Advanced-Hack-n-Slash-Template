@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class MaxMagicaEffect : Effect
 {
+    private float modAmount;
     public override void DoModify()
     {
         creatureModifyable.MaxMpEffectMod += (int)modAmount;

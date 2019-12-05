@@ -4,8 +4,6 @@ using UnityEngine;
 
 public abstract class Effect : MonoBehaviour
 {
-    [SerializeField] 
-    protected float modAmount;
     protected CreatureModifyableProperties creatureModifyable;
    
     void Start()
@@ -17,7 +15,7 @@ public abstract class Effect : MonoBehaviour
     /// <summary>
     /// Destroy's the effect component.
     /// </summary>
-    public virtual void DestroyEffect()
+    public void Destroy()
     {
         SetEffectOff();
         Destroy(this);
@@ -29,7 +27,6 @@ public abstract class Effect : MonoBehaviour
     public virtual void SetEffectOff()
     {
         if (!_activeEffect) return;
-
         _activeEffect = false;
         UndoModify();
     }
