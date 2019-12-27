@@ -10,16 +10,16 @@ public class BlockMoveEffect : Effect
     private float curBaseMoveSpd = 0;
     private void Update()
     {        
-        if (creatureModifyable.Creature.Blocking)
-        {
-            if (curBaseMoveSpd != creatureModifyable.Creature.BaseMoveStateMaxSpd)
-            {              
-                SetEffectOff();
-                SetEffectOn();
-            }
-        }
-        else if (!creatureModifyable.Creature.Blocking && TheEffectIsActive())
-            SetEffectOff();
+      //  if (creatureModifyable.Creature.Blocking)
+      //  {
+     //       if (curBaseMoveSpd != creatureModifyable.Creature.BaseMoveStateMaxSpd)
+     //       {              
+     //           SetEffectOff();
+     //           SetEffectOn();
+    //        }
+    //    }
+    //    else if (!creatureModifyable.Creature.Blocking && TheEffectIsActive())
+    //        SetEffectOff();
     }
     public override void DoModify()
     {        

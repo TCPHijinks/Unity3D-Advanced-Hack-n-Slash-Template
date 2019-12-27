@@ -26,8 +26,9 @@ public abstract class Creature : MonoBehaviour
 
 
 
-    protected void Update()
+    protected void LateUpdate()
     {
+        //Debug.Log(gndCheck.AmGrounded);
         Grounded = gndCheck.Grounded;
         ApplyGravity();
     }
@@ -47,17 +48,24 @@ public abstract class Creature : MonoBehaviour
             return (DynamicMaxSpd * 4 + HorizontalVel) * 8f;
         } 
     }
-    [SerializeField] protected float defaultMoveSpd = 2.5f, runMoveSpd = 4f;
 
+    public float SneakMoveSpd { get { return sneakSpeed; } protected set { sneakSpeed = value; } }
+    [SerializeField] private float sneakSpeed = 2f;
 
+    public float WalkMoveSpd { get { return walkSpeed; } protected set { walkSpeed = value; } }
+    [SerializeField] private float walkSpeed = 4f;
 
+    public float RunMoveSpd { get { return runSpeed; } protected set { runSpeed = value; } }
+    [SerializeField] private float runSpeed = 12f;
+
+    
 
 
     #region Health, Magica, Stamina
     /// <summary>
     /// Base health points. Calculated using minimum HP and stat points.
     /// </summary>
-    private int _baseMaxHp = 0;
+    private int _baseMaxHp = 10;
     /// <summary>
     /// Maximum health. Calculated using base HP and 'effect modifiers' (e.g. armor).
     /// </summary>
@@ -114,9 +122,8 @@ public abstract class Creature : MonoBehaviour
         {
             float maxSpdBaseNMod = modifyableProperties.MaxSpdEffectMod + BaseMoveStateMaxSpd;
 
-            if (BaseMoveStateMaxSpd == 0) return 0; // No dynamic movement if not moving legs.
-            if (Blocking && BaseMoveStateMaxSpd != runMoveSpd) return Mathf.Clamp(maxSpdBaseNMod * .75f + terrainMaxSpdMod / 2, 0, 99);
-            return Mathf.Clamp(maxSpdBaseNMod + terrainMaxSpdMod, 0, 99); 
+            if (BaseMoveStateMaxSpd == 0) return 0; // No dynamic movement if not moving legs.           
+            return Mathf.Clamp(maxSpdBaseNMod + terrainMaxSpdMod, 0, 99) * .75f; 
         }      
     }
     #endregion
@@ -138,7 +145,7 @@ public abstract class Creature : MonoBehaviour
     public int RotationSpeed 
     {
         get
-        {            
+        {                 
             return Mathf.Clamp(BaseRotSpd + modifyableProperties.RotSpdEffectsMod, 0, 99);
         }        
     }
@@ -152,11 +159,7 @@ public abstract class Creature : MonoBehaviour
     /// <summary>
     /// If the humanoid is in a combat stance (i.e. weapon drawn).
     /// </summary>
-    public bool InCombat { get; set; } = false;
-    /// <summary>
-    /// If the humanoid is currently blocking.
-    /// </summary>
-    public bool Blocking { get; set; } = false;
+    public bool InCombat { get; set; } = false;   
     /// <summary>
     /// Attacks can have combos in the animator. When Attack(), it increases to continue the combo.
     /// </summary>

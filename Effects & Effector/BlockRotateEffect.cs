@@ -7,10 +7,10 @@ public class BlockRotateEffect : Effect
     private int rotSpd = 0;
     private void Update()
     {
-        if (creatureModifyable.Creature.Blocking)        
-            SetEffectOn();                    
-        else if (!creatureModifyable.Creature.Blocking)
-            SetEffectOff();
+      //  if (creatureModifyable.Creature.Blocking)        
+      //      SetEffectOn();                    
+      //  else if (!creatureModifyable.Creature.Blocking)
+      //      SetEffectOff();
     }
     public override void DoModify()
     {

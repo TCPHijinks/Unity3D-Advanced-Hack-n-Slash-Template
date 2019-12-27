@@ -6,13 +6,13 @@ public class CameraOrbit : MonoBehaviour
 {
     private const float Y_ANGLE_MIN = 10.0F;
     private const float Y_ANGLE_MAX = 50.0f;
-    private const float CAM_DISTANCE_MIN = 2f;
-    private const float CAM_DISTANCE_MAX = 5f;
+ //   private const float CAM_DISTANCE_MIN = 2f;
+ //   private const float CAM_DISTANCE_MAX = 5f;
 
     public Transform player;
     public Transform _camera;
 
-    private float distance = 10.0f;
+    [SerializeField] private float distance = 3.0f;
     private float currentX = 0f;
     private float currentY = 0f;
     private float sensitivityX = 4f;
@@ -36,10 +36,10 @@ public class CameraOrbit : MonoBehaviour
     {
         currentX += Input.GetAxis("Mouse X") * sensitivityX;
         currentY -= Input.GetAxis("Mouse Y") * sensitivityY;        
-        distance -= Input.GetAxis("Mouse ScrollWheel") * 5;
+       // distance -= Input.GetAxis("Mouse ScrollWheel") * 5;
 
         currentY = Mathf.Clamp(currentY, Y_ANGLE_MIN, Y_ANGLE_MAX);
-        distance = Mathf.Clamp(distance, CAM_DISTANCE_MIN, CAM_DISTANCE_MAX);
+       // distance = Mathf.Clamp(distance, CAM_DISTANCE_MIN, CAM_DISTANCE_MAX);
     }
 
 
