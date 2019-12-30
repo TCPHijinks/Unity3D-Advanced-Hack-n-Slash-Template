@@ -8,6 +8,8 @@ public class HumanoidAnim : MonoBehaviour
     private CharacterController cc;
     private Animator anim;
 
+    public AttkType CurValidAttk { get; private set; }
+
     private int combatRollState;
     private int jumpState;
     private int combatMoveState;
@@ -25,13 +27,14 @@ public class HumanoidAnim : MonoBehaviour
     private bool inRollState = false;
     private bool inSlideState = false;
     public bool InAttkState { get; private set; } = false;
-
+    private float defaultColliderHeight;
     // Start is called before the first frame update
     void Start()
     {
         cc = GetComponent<CharacterController>();
         anim = GetComponent<Animator>();
-       
+
+        defaultColliderHeight = cc.height;
 
         combatRollState = Animator.StringToHash("Base Layer.Combat_Roll");
         jumpState = Animator.StringToHash("Base Layer.Jump");
@@ -43,8 +46,7 @@ public class HumanoidAnim : MonoBehaviour
 
     public float AttkRotationPenalty { get; private set; }
 
-    bool dd = false;
-    int attkVariant = 1;
+  
   
     AnimatorStateInfo prevState;
  
@@ -87,7 +89,7 @@ public class HumanoidAnim : MonoBehaviour
         anim.SetFloat("Vertical", vertical, .045f, Time.deltaTime);
         anim.SetInteger("RollDir", rollDir);
         anim.SetBool("InAttkState", InAttkState);
-        cc.height = anim.GetFloat("Collider_Scale");
+        cc.height = anim.GetFloat("Collider_Scale") * defaultColliderHeight;
         if (cc.height == 0) cc.height = 1f;
         cc.center = new Vector3(cc.center.x, cc.height * .6f, cc.center.z);
      
@@ -126,8 +128,12 @@ public class HumanoidAnim : MonoBehaviour
             curAttk = AttkType.none;
         
         anim.SetInteger("attkType", (int)curAttk);
+
+        // Update last type of attack.
+        if (curAttk != AttkType.none)
+            CurValidAttk = curAttk;
     }
-    public enum AttkType { none, swing, overhead, lunge };    
+        
     private AttkType quedAttk = AttkType.none;
     private AttkType curAttk = AttkType.none;
     private bool newAttkQued = false;

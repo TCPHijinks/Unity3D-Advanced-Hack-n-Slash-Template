@@ -21,7 +21,7 @@ public class HumanoidPlayer : MonoBehaviour
 
 
 
-    HumanoidAnim.AttkType RequestedAttack = HumanoidAnim.AttkType.none;
+    AttkType RequestedAttack = AttkType.none;
     RollDir rollDir = RollDir.None;
     void Update()
     {
@@ -42,17 +42,17 @@ public class HumanoidPlayer : MonoBehaviour
 
 
 
-        RequestedAttack = HumanoidAnim.AttkType.none;
+        RequestedAttack = AttkType.none;
         // Attack when attack button clicked. 
         if (Input.GetAxis("Mouse ScrollWheel") > 0)
-            RequestedAttack = HumanoidAnim.AttkType.lunge;        
+            RequestedAttack = AttkType.pierce;        
 
         // Attack when attack button clicked. 
         else if (Input.GetAxis("Mouse ScrollWheel") < 0)
-            RequestedAttack = HumanoidAnim.AttkType.overhead;
+            RequestedAttack = AttkType.crush;
         
         if (Input.GetButton("Fire1"))
-            RequestedAttack = HumanoidAnim.AttkType.swing;
+            RequestedAttack = AttkType.slash;
 
 
 

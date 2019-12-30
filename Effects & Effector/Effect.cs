@@ -5,11 +5,10 @@ using UnityEngine;
 public abstract class Effect : MonoBehaviour
 {
     protected CreatureModifyableProperties creatureModifyable;
-   
-    void Start()
+    public float amount;
+    void Awake()
     {
-        creatureModifyable = GetComponent<CreatureModifyableProperties>();
-        SetEffectOn();
+        creatureModifyable = GetComponentInParent<CreatureModifyableProperties>();        
     }
 
     /// <summary>
@@ -42,16 +41,14 @@ public abstract class Effect : MonoBehaviour
         DoModify();
     }
 
-    private bool _activeEffect = false;
+    
     /// <summary>
     /// If the effect is currently active.
     /// </summary>
     /// <returns>If the effect is on.</returns> 
-    public virtual bool TheEffectIsActive()
-    {
-        return _activeEffect;
-    }
+    public virtual bool EffectIsActive { get => _activeEffect; }
+    private bool _activeEffect = false;
 
-    public abstract void DoModify();
-    public abstract void UndoModify();
+    protected abstract void DoModify();
+    protected abstract void UndoModify();
 }

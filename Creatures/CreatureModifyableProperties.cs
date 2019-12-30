@@ -8,9 +8,11 @@ using UnityEngine;
 public class CreatureModifyableProperties : MonoBehaviour
 {
     public Creature Creature { get; private set; }
+    public Health Health { get; private set; }
     private void Awake()
     {
         Creature = GetComponent<Creature>();
+        Health = GetComponent<Health>();       
     }
 
     /// <summary>

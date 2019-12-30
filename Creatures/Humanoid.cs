@@ -4,8 +4,6 @@ using UnityEngine;
 
 public class Humanoid : Creature
 {
-    public GameObject leftHandEquip, rightHandEquip;
-   
     #region Movement.
     /// <summary>
     /// Current acceleration/deceleration to 'dynamix max speed'.
@@ -45,17 +43,6 @@ public class Humanoid : Creature
         SetCurSpdAccel(); // Calc and apply cur accel.       
                   
         MoveHumanoid();
-
-        if(!InCombat)
-        {
-            leftHandEquip.SetActive(false);
-            rightHandEquip.SetActive(false);
-        }
-        else
-        {
-            leftHandEquip.SetActive(true);
-            rightHandEquip.SetActive(true);
-        }
     }
 
 
