@@ -4,11 +4,11 @@ using UnityEngine;
 
 public interface IDamages 
 {
-    int CrushingDamage { get; }
-    int PiercingDamage { get; }
-    int SlashingDamage { get; }
+    int WeaponTypeCrushBonusDamage { get; }
+    int WeaponTypePierceBonusDamage { get; }
+    int WeaponTypeSlashBonusDamage { get; }
 
-    void DoDamage(CreatureModifyableProperties targetProperties, AttkType dmgType, int amount);
+    void DoDamage(CreatureModifyableProperties targetProperties, AttkType dmgType, int statDamageBonus);
  
 }
 

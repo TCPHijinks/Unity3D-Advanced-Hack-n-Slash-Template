@@ -10,6 +10,9 @@ public abstract class Effector : MonoBehaviour
     /// <param name="target"></param>
     protected void AddEffectToTarget(Creature target, System.Type effect)
     {
-       target.gameObject.AddComponent(effect);
+        if (typeof(Effect) != effect.BaseType) return;
+
+    
+        target.gameObject.AddComponent(effect.GetType());
     }
 }

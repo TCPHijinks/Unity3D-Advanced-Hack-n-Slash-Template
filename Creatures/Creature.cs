@@ -65,7 +65,7 @@ public abstract class Creature : MonoBehaviour
     /// <summary>
     /// Base health points. Calculated using minimum HP and stat points.
     /// </summary>
-    private int _baseMaxHp = 10;
+    [SerializeField] private int _baseMaxHp = 40;
     /// <summary>
     /// Maximum health. Calculated using base HP and 'effect modifiers' (e.g. armor).
     /// </summary>

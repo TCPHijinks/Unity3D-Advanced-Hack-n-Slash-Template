@@ -36,8 +36,7 @@ public class Humanoid : Creature
     public bool IsAttacking { get; private set; }
 
     void Update()
-    {        
-
+    {       
         SetMaxSpdTerrainMod();
        
         SetCurSpdAccel(); // Calc and apply cur accel.       
@@ -45,7 +44,43 @@ public class Humanoid : Creature
         MoveHumanoid();
     }
 
+   
 
+    public void PreventClipping(string otherMaskLayer, int numChecks)
+    {
+        RaycastHit hit;
+        LayerMask otherLayer = LayerMask.NameToLayer(otherMaskLayer);
+
+        //Bottom of controller. Slightly above ground so it doesn't bump into slanted platforms. (Adjust to your needs)
+        Vector3 p1 = transform.position + Vector3.up * 0.25f;
+        //Top of controller
+        Vector3 p2 = p1 + Vector3.up * cControl.height;
+
+        //Check around the character in a 360, 10 times (increase if more accuracy is needed)
+        for (int i = 0; i < numChecks; i += 36)
+        {
+            //Check if anything with the platform layer touches this object
+            if (Physics.CapsuleCast(p1, p2, 0, new Vector3(Mathf.Cos(i), 0, Mathf.Sin(i)), out hit, distance, 1 << otherLayer))
+            {
+                //If the object is touched by a platform, move the object away from it
+                cControl.Move(hit.normal * (distance - hit.distance));
+            }
+        }
+
+        //[Optional] Check the players feet and push them up if something clips through their feet.
+        //(Useful for vertical moving platforms)
+        if (Physics.Raycast(transform.position + Vector3.up, -Vector3.up, out hit, 1, 1 << otherLayer))
+        {
+            cControl.Move(Vector3.up * (1 - hit.distance));
+        }
+    }
+
+    //Distance is slightly larger than the
+    float distance => cControl.radius + 0.2f;
+ 
+        //First add a Layer name to all platforms (I used MovingPlatform)
+        //Now this script won't run on regular objects, only platforms.
+     // => gameObject.tag == "Enemy" ? LayerMask.NameToLayer("Player") : LayerMask.NameToLayer("Enemy");
 
 
     public void SetMoveState(moveEnum moveState)
@@ -157,9 +192,9 @@ public class Humanoid : Creature
         
 
         // Accel if cur spd slower than max, decel if too fast.
-        if (Grounded  && CurSpeed <= DynamicMaxSpd)
+        if (Grounded  && CurSpeed <= DynamicMaxSpd && BaseMoveStateMaxSpd != (int)moveEnum.Idle)
             CurSpeed += moveAccel * Time.deltaTime;
-        else if (CurSpeed > DynamicMaxSpd)
+        else if (CurSpeed > DynamicMaxSpd || BaseMoveStateMaxSpd == (int)moveEnum.Idle)
             CurSpeed -= (moveAccel * 1.25f) * Time.deltaTime;
 
 

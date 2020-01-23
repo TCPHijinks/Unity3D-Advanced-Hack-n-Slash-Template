@@ -7,12 +7,21 @@ using UnityEngine;
 /// </summary>
 public class CreatureModifyableProperties : MonoBehaviour
 {
+    private CreatureAnimManager anim;
     public Creature Creature { get; private set; }
     public Health Health { get; private set; }
     private void Awake()
     {
         Creature = GetComponent<Creature>();
-        Health = GetComponent<Health>();       
+        Health = GetComponent<Health>();
+        anim = GetComponent<CreatureAnimManager>();
+    }
+
+    public bool InStunState => anim.IsStunned;
+
+    public void SetAnimStunned(Transform stunSrc, int StunStrength1to3)
+    {
+        anim.DoStun(stunSrc, transform, StunStrength1to3);
     }
 
     /// <summary>

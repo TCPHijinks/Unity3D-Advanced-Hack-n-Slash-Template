@@ -4,8 +4,8 @@ using UnityEngine;
 
 public class PlayerAttkManager : MonoBehaviour
 {
-    [SerializeField] private GameObject rightPrimaryWep, leftOffhandWep;
-
+    [SerializeField] private Weapon rightPrimaryWep, leftOffhandWep;
+    CreatureAnimManager anim;
     Creature creature;
    
 
@@ -13,15 +13,34 @@ public class PlayerAttkManager : MonoBehaviour
     void Start()
     {
         creature = GetComponent<Creature>();
-        
+        anim = GetComponent<HumanoidAnim>();
     }
 
 
-    AttkType lastValidAttk;
+   
     // Update is called once per frame
     void Update()
     {
-        EquipedInCombat();      
+        EquipedInCombat();
+
+        if (!anim.DoingAttk)
+        {
+            leftOffhandWep.CanDamage = false;
+            rightPrimaryWep.CanDamage = false;
+            return;
+        }
+
+
+        if(anim.DoingOffhandAttack)
+        {
+            leftOffhandWep.CanDamage = true;
+            rightPrimaryWep.CanDamage = false;
+        }
+        else
+        {
+            leftOffhandWep.CanDamage = false;
+            rightPrimaryWep.CanDamage = true;
+        }
     }
 
     void EquipedInCombat()
@@ -37,5 +56,5 @@ public class PlayerAttkManager : MonoBehaviour
             rightPrimaryWep.gameObject.SetActive(true);
         }
     }
-    HumanoidAnim anim;
+   
 }

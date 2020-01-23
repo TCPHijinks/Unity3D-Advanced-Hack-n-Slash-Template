@@ -5,7 +5,7 @@ using UnityEngine;
 public class HumanoidPlayer : MonoBehaviour
 {
     private HumanoidAnim anim;
-    [SerializeField] private Humanoid humanoid;
+    private Humanoid humanoid;
     [SerializeField] private Camera cam;
     [SerializeField] private int rotDampening = 99;
 
@@ -22,9 +22,11 @@ public class HumanoidPlayer : MonoBehaviour
 
 
     AttkType RequestedAttack = AttkType.none;
-    RollDir rollDir = RollDir.None;
+    Direction rollDir = Direction.None;
     void Update()
     {
+        
+
         bool blocking = false;
         // Block with shield when block button clicked.
         if (Input.GetButton("Fire2"))
@@ -68,16 +70,20 @@ public class HumanoidPlayer : MonoBehaviour
         UpdateLastMoveDir(MoveDir);
 
         // Combat rolling when in combat.
-        float toRollDir = 0;
+        float toDirection = 0;
         if (humanoid.InCombat && Input.GetKey(KeyCode.Space))
-            toRollDir = DoCombatRoll();
+            toDirection = DoCombatRoll();
 
         sneaking = false;
         if (Input.GetKey(KeyCode.LeftControl))              
             sneaking = true;
-             
+
+   
+
         // Update animator.
-        anim.UpateAnimator(humanoid.Grounded, blocking, humanoid.InCombat, humanoid.CurSpeed, running, MoveDir.x, MoveDir.z, RequestedAttack, doCmbtRoll, (int)toRollDir, sneaking);
+        anim.UpateAnimator(humanoid.Grounded, blocking, humanoid.InCombat, humanoid.CurSpeed, running, MoveDir.x, MoveDir.z, RequestedAttack, doCmbtRoll, (int)toDirection, sneaking);
+        //if(!anim.DoingCombatRoll && !anim.DoingAttk) humanoid.PreventClipping("Enemy", 360);
+
         doCmbtRoll = false;
     }
     bool sneaking = false;
@@ -100,7 +106,7 @@ public class HumanoidPlayer : MonoBehaviour
                 {
                     humanoid.SetMoveState(Humanoid.moveEnum.Sneak);
                 }                    
-                else if (Input.GetButton("Run") && humanoid.Grounded || anim.DoingSlide)
+                else if (Input.GetButton("Run") && humanoid.Grounded)
                 {                    
                     humanoid.SetMoveState(Humanoid.moveEnum.Run);
                     return true; // Return is running.
@@ -134,7 +140,7 @@ public class HumanoidPlayer : MonoBehaviour
         {
            
             if (anim.DoingAttk && anim.AttkRotationPenalty < 1) 
-                humanoid.Rotate(cam.transform.forward, 900);
+                humanoid.Rotate(cam.transform.forward, 750);
             else if(!anim.InAttkState && humanoid.InCombat && MoveDir != Vector3.zero)
                 humanoid.Rotate(cam.transform.forward, rotDampening);
         }
@@ -155,22 +161,22 @@ public class HumanoidPlayer : MonoBehaviour
         // Calculate roll direction - add dir enums together to get new dir (e.g. fwd + lft = fwd&lft)
         if (lastMoveDir != Vector3.zero)
         {
-            rollDir = RollDir.None;
+            rollDir = Direction.None;
             if (lastMoveDir.x > 0)
-                rollDir += (int)RollDir.Right;
+                rollDir += (int)Direction.Right;
             else if (lastMoveDir.x < 0)
-                rollDir += (int)RollDir.Left;
+                rollDir += (int)Direction.Left;
             if (lastMoveDir.z > 0)
-                rollDir += (int)RollDir.Fwd;
+                rollDir += (int)Direction.Fwd;
             else if (lastMoveDir.z < 0)
-                rollDir += (int)RollDir.Back;
+                rollDir += (int)Direction.Back;
         }
         // Do new combat roll if valid dir & not already doing one.
         doCmbtRoll = false;
-        if (rollDir != RollDir.None && !anim.DoingCombatRoll) doCmbtRoll = true;       
+        if (rollDir != Direction.None && !anim.DoingCombatRoll) doCmbtRoll = true;       
         return (int)rollDir;
     }
-    public enum RollDir { None = 0, Fwd = 1, Back = 10, Left = 3, Right = 6, FwdL = 4, FwdR = 7, BackL = 13, BackR = 16 }  
+  
     private bool doCmbtRoll = false;
 
 

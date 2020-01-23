@@ -6,7 +6,7 @@ public class HumanoidBasicEnemy : MonoBehaviour
 {
     public GameObject target;
     private HumanoidAnim anim;
-    [SerializeField] private Humanoid humanoid;
+    private Humanoid humanoid;
 
     // Start is called before the first frame update
     void Start()
@@ -21,21 +21,25 @@ public class HumanoidBasicEnemy : MonoBehaviour
     {
         Vector3 MoveDir = target.transform.position - transform.position;
         humanoid.Rotate(MoveDir, 1);
-        humanoid.SetMoveState(Humanoid.moveEnum.Walk);
-        
+        humanoid.Rotate(target.transform.position - transform.position, 1);
+         humanoid.SetMoveState(Humanoid.moveEnum.Sneak);
+        humanoid.InCombat = true;
         AttkType attk = AttkType.none;
         if (Vector3.Distance(transform.position, target.transform.position) < 2)
         {
             humanoid.InCombat = true;
-            attk = AttkType.crush;
+            attk = AttkType.slash;
         }
         else
         {
             humanoid.InCombat = false;
         }
-            
 
+       
+
+      
         anim.UpateAnimator(humanoid.Grounded, false, humanoid.InCombat, humanoid.CurSpeed, false, MoveDir.x, MoveDir.z, attk, false, 0, false);
+     
     }
 }
 
