@@ -8,7 +8,7 @@ public class PlayerChar : Character
     private Vector2 moveDir = Vector2.zero;
     private void Awake()
     {
-        cControl = GetComponent<CharacterController>();
+        rigidbody = GetComponent<Rigidbody>();
 
         controls = new PlayerControls();
         controls.Gameplay.Maneuver.performed += ctx => Maneuver();
@@ -16,7 +16,7 @@ public class PlayerChar : Character
         controls.Gameplay.AttackHeavy.performed += ctx => AttackHeavy();
         controls.Gameplay.Interact.performed += ctx => Interact();
 
-        controls.Gameplay.Move.performed += ctx => moveDir = ctx.ReadValue<Vector2>();//  moveDir = new Vector3(ctx.ReadValue<Vector2>().x, 0, ctx.ReadValue<Vector2>().y);
+        controls.Gameplay.Move.performed += ctx => moveDir = ctx.ReadValue<Vector2>();
         controls.Gameplay.Move.canceled += ctx => moveDir = Vector2.zero;
     }
 
