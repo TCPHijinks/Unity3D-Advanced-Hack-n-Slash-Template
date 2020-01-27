@@ -4,13 +4,16 @@ using UnityEngine;
 
 public abstract class Character : MonoBehaviour
 {
-    protected Rigidbody rigidbody;
-    // protected CharacterController cControl;
+    protected Rigidbody rb;   
+
     [SerializeField][Range(0,1)] protected float moveSpeed = .1f;
 
 
 
-
+    /// <summary>
+    /// Move character and rotate to move direction.
+    /// </summary>
+    /// <param name="moveDirRequest"></param>
     protected void MoveAndRotate(Vector2 moveDirRequest)
     {
         // No move/rotation if not moving.
@@ -20,58 +23,66 @@ public abstract class Character : MonoBehaviour
             return;
         }
         moving = true;
-
-        // Don't move/rotate if too slow.
-        if (Mathf.Abs(moveDirRequest.sqrMagnitude) < deadZone) return;
         
-       
+        
+        // Absolute x & y for comparison.
         float absoluteX = Mathf.Abs(moveDirRequest.x);
         float absoluteY = Mathf.Abs(moveDirRequest.y);
+        // Rounded x & y for direction of movement.
         int roundedX = RoundToNonZero(moveDirRequest.x);
         int roundedY = RoundToNonZero(moveDirRequest.y);
-               
-        bool canDiagonal = absoluteX > diagonalDeadZone && absoluteY > diagonalDeadZone;
-        
+                
+        bool moveDiagonal = absoluteX > deadZone && absoluteY > deadZone;
+
+
         Vector3 moveDir;
-        if (canDiagonal)
+        if (moveDiagonal)       
         {
             moveDir = new Vector3(roundedX, 0, roundedY);
         }
+        // Only moving left or right.
         else if (absoluteX > absoluteY)
         {
             moveDir = new Vector3(roundedX, 0, 0);
         }
+        // Only moving forward or back.
         else
         {
             moveDir = new Vector3(0, 0, roundedY);
         }
 
-             
+        // Rotate to direction moving.     
         ApplyRotation(moveDir);
 
-        // Update speed for FixedUpdate rigidbody movement.
+        // Update speed for FixedUpdate physics movement method.
         speed = (Mathf.Abs(moveDirRequest.sqrMagnitude) * moveSpeed) * 500;
-    }   
-    private readonly float deadZone = .05f;
-    [SerializeField] private float diagonalDeadZone = .2f;
-    float speed;
-    bool moving = false;
+    }    
+    private readonly float deadZone = .4f;
+    private bool moving = false;
+    
 
 
+    /// <summary>
+    /// Update physics.
+    /// </summary>
     private void FixedUpdate()
     {
-        rigidbody.velocity = new Vector3(0, rigidbody.velocity.y, 0);
-        if(moving) rigidbody.AddForce(transform.forward * speed);
+        rb.velocity = new Vector3(0, rb.velocity.y, 0);
+        if(moving) rb.AddForce(transform.forward * speed);
     }
-   
+    private float speed;
 
+
+
+    /// <summary>
+    /// Rotate character to look direction.
+    /// </summary>
+    /// <param name="lookDir"></param>
     private void ApplyRotation(Vector3 lookDir)
     {
         transform.rotation = Quaternion.LookRotation(lookDir);
     }
-
-
-
+       
 
 
     /// <summary>

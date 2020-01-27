@@ -8,7 +8,7 @@ public class PlayerChar : Character
     private Vector2 moveDir = Vector2.zero;
     private void Awake()
     {
-        rigidbody = GetComponent<Rigidbody>();
+        rb = GetComponent<Rigidbody>();
 
         controls = new PlayerControls();
         controls.Gameplay.Maneuver.performed += ctx => Maneuver();
