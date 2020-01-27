@@ -60,10 +60,10 @@ public abstract class Character : MonoBehaviour
 
     private void FixedUpdate()
     {
-        rigidbody.velocity = Vector3.zero;
+        rigidbody.velocity = new Vector3(0, rigidbody.velocity.y, 0);
         if(moving) rigidbody.AddForce(transform.forward * speed);
     }
-
+   
 
     private void ApplyRotation(Vector3 lookDir)
     {
