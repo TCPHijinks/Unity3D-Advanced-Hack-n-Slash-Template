@@ -4,6 +4,7 @@ using UnityEngine;
 
 public class Weapon : Effector, IDamages
 {
+    CharacterAnimManager animManager;
     public bool CanDamage = false;  
     protected int baseDamage = 5;
  
@@ -14,18 +15,18 @@ public class Weapon : Effector, IDamages
 
     protected void Start()
     {
-      
+        animManager = GetComponentInParent<CharacterAnimManager>();
     }
 
     
 
 
 
-    public int WeaponTypeCrushBonusDamage { get => _crushDmg; }
+    public int WeaponTypeStandardBonusDamage { get => _crushDmg; }
     protected int _crushDmg = 0;
-    public int WeaponTypePierceBonusDamage { get => _pierceDmg; }
+    public int WeaponTypeHeavyBonusDamage { get => _pierceDmg; }
     protected int _pierceDmg = 0;
-    public int WeaponTypeSlashBonusDamage { get => _slashDmg; }
+    public int WeaponTypeChargedBonusDamage { get => _slashDmg; }
     protected int _slashDmg = 0;
    
 
@@ -41,14 +42,14 @@ public class Weapon : Effector, IDamages
         int typeDamage = 0;
         switch (dmgType) 
         {           
-            case AttkType.crush:
-                typeDamage += WeaponTypeCrushBonusDamage;
+            case AttkType.standard:
+                typeDamage += WeaponTypeStandardBonusDamage;
                 break;
-            case AttkType.pierce:
-                typeDamage += WeaponTypePierceBonusDamage;
+            case AttkType.heavy:
+                typeDamage += WeaponTypeHeavyBonusDamage;
                 break;
-            case AttkType.slash:
-                typeDamage += WeaponTypeSlashBonusDamage;
+            case AttkType.charged:
+                typeDamage += WeaponTypeChargedBonusDamage;
                 break;
             default:
                 return 0;
@@ -110,8 +111,7 @@ public class Weapon : Effector, IDamages
     /// Applies dynamic attack damage + all other effects to target.
     /// </summary>
     /// <param name="targetProperties"></param>
-    /// <param name="dmgType"></param>
-    /// <param name="statDamageBonus"></param>
+    /// <param name="dmgType"></param>   
     public void DoDamage(CharModifyableProperties targetProperties, AttkType dmgType)
     {
         // Calculate dynamic damage.
@@ -130,12 +130,12 @@ public class Weapon : Effector, IDamages
      
     private void OnTriggerEnter(Collider other)
     {
-        if (!CanDamage) return;
+        if (!CanDamage && animManager.CanDoDamage) return;
         DoDmgIfHitNewCreature(other);
     }
     private void OnTriggerStay(Collider other)
     {
-        if (!CanDamage) return;
+        if (!CanDamage && animManager.CanDoDamage) return;
         DoDmgIfHitNewCreature(other);
     }
 
@@ -149,12 +149,12 @@ public class Weapon : Effector, IDamages
     /// </summary>
     /// <param name="other"></param>
     private void DoDmgIfHitNewCreature(Collider other)
-    {        
+    {      
         if (other.tag != targetTag) return;
-        Debug.Log("Here");
+        if (!animManager.CanDoDamage) return;
         if (alreadyDamaged.Contains(other.gameObject)) return;
         alreadyDamaged.Add(other.gameObject);
-        DoDamage(other.gameObject.GetComponent<CharModifyableProperties>(), AttkType.slash);  // ************* REPLACE 5 WITH STAT BONUS *****************
+        DoDamage(other.gameObject.GetComponent<CharModifyableProperties>(), animManager.GetCurAttack); 
     }
     [SerializeField] string targetTag = "Enemy";
     List<GameObject> alreadyDamaged = new List<GameObject>();
@@ -166,7 +166,7 @@ public class Weapon : Effector, IDamages
     protected void Update()
     {      
         // Reset already hit list so can damage target again in next attack.
-        if (alreadyDamaged.Count > 0)
+        if (alreadyDamaged.Count > 0 && !animManager.CanDoDamage)
             alreadyDamaged = new List<GameObject>();
     }
 }

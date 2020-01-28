@@ -9,6 +9,7 @@ public class PlayerChar : Character
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
+        animManager = GetComponent<CharacterAnimManager>();
 
         controls = new PlayerControls();
         controls.Gameplay.Maneuver.performed += ctx => Maneuver();
@@ -34,25 +35,5 @@ public class PlayerChar : Character
     private void OnDisable()
     {
         controls.Gameplay.Disable();
-    }
-
-    void Maneuver()
-    {
-        Debug.Log("JUMP! ROLL!");
-    }
-
-    void AttackStd()
-    {
-        Debug.Log("BASIC BITCH PUNCH!");
-    }
-
-    void AttackHeavy()
-    {
-        Debug.Log("KICK TO THE DICK");
-    }
-
-    void Interact()
-    {
-        Debug.Log("JUST USE IT!");
-    }
+    }   
 }

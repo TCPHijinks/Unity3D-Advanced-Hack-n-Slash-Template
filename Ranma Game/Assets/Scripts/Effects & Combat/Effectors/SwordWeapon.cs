@@ -14,8 +14,7 @@ public class SwordWeapon : Weapon
     private new void Start()
     {
         base.Start();
-        AddNewEffect(typeof(DamageEffect), 3);
-        
+        AddNewEffect(typeof(DamageEffect), 3);        
     }
 
     private new void Update()

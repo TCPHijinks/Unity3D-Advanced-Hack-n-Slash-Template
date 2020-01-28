@@ -4,8 +4,8 @@ using UnityEngine;
 
 public abstract class Character : MonoBehaviour
 {
-    protected Rigidbody rb;   
-
+    protected Rigidbody rb;
+    protected CharacterAnimManager animManager;
     [SerializeField][Range(0,1)] protected float moveSpeed = .1f;
 
 
@@ -16,6 +16,13 @@ public abstract class Character : MonoBehaviour
     /// <param name="moveDirRequest"></param>
     protected void MoveAndRotate(Vector2 moveDirRequest)
     {
+        // No moving or rotation during attacks.
+        if (animManager.CanDoDamage)
+        {
+            speed = 0;
+            return;
+        }
+
         // No move/rotation if not moving.
         if (moveDirRequest == Vector2.zero)
         {
@@ -94,5 +101,25 @@ public abstract class Character : MonoBehaviour
     {
         if (toRound > 0) return Mathf.CeilToInt(toRound);
         else return Mathf.FloorToInt(toRound);
+    }
+
+    protected void Maneuver()
+    {
+        Debug.Log("JUMP! ROLL!");
+    }
+
+    protected void AttackStd()
+    {
+        animManager.DoAttack(AttkType.standard);
+    }
+
+    protected void AttackHeavy()
+    {
+        Debug.Log("KICK TO THE DICK");
+    }
+
+    protected void Interact()
+    {
+        Debug.Log("JUST USE IT!");
     }
 }
