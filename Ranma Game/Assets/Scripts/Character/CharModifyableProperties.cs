@@ -6,10 +6,12 @@ using UnityEngine;
 /// Modular exposure of modifiable variables specifically for IEffects usage.
 /// </summary>
 public class CharModifyableProperties : MonoBehaviour
-{    
+{
+    public CharacterAnimManager AnimManager;
     public Health Health { get; private set; }
     private void Awake()
-    {     
+    {
+        AnimManager = GetComponentInChildren<CharacterAnimManager>();
         Health = GetComponent<Health>();    
     }
 

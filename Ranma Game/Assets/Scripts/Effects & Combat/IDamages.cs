@@ -4,9 +4,9 @@ using UnityEngine;
 
 public interface IDamages 
 {
-    int WeaponTypeCrushBonusDamage { get; }
-    int WeaponTypePierceBonusDamage { get; }
-    int WeaponTypeSlashBonusDamage { get; }
+    int WeaponTypeStandardBonusDamage { get; }
+    int WeaponTypeHeavyBonusDamage { get; }
+    int WeaponTypeChargedBonusDamage { get; }
 
     void DoDamage(CharModifyableProperties targetProperties, AttkType dmgType);
  

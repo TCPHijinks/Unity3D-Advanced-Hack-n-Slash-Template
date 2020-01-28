@@ -1,8 +1,7 @@
 ﻿public enum AttkType
 {
     none,
-    slash,
-    crush, 
-    pierce
-
+    standard,
+    heavy,
+    charged
 }
