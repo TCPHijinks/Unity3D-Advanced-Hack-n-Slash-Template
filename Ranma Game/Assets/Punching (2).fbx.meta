@@ -38,8 +38,8 @@ ModelImporter:
       name: punch R arm
       takeName: mixamo.com
       internalID: 0
-      firstFrame: 0
-      lastFrame: 31
+      firstFrame: 6.8
+      lastFrame: 26
       wrapMode: 0
       orientationOffsetY: -34.2
       level: 0
@@ -64,6 +64,24 @@ ModelImporter:
           curve:
           - serializedVersion: 3
             time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 0.347973
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 0.35304052
             value: 1
             inSlope: 0
             outSlope: 0
@@ -72,8 +90,26 @@ ModelImporter:
             inWeight: 0
             outWeight: 0
           - serializedVersion: 3
-            time: 1
+            time: 0.6807432
             value: 1
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 0.6841216
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
             inSlope: 0
             outSlope: 0
             tangentMode: 0

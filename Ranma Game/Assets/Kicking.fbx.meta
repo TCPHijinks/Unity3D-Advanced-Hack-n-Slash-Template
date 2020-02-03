@@ -38,7 +38,7 @@ ModelImporter:
       name: Kick Basic
       takeName: mixamo.com
       internalID: 0
-      firstFrame: 0
+      firstFrame: 4.9
       lastFrame: 29
       wrapMode: 0
       orientationOffsetY: 0
@@ -64,6 +64,24 @@ ModelImporter:
           curve:
           - serializedVersion: 3
             time: 0
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 0.1537162
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 0.1570946
             value: 1
             inSlope: 0
             outSlope: 0
@@ -72,8 +90,26 @@ ModelImporter:
             inWeight: 0
             outWeight: 0
           - serializedVersion: 3
-            time: 1
+            time: 0.6030405
             value: 1
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 0.60641897
+            value: 0
+            inSlope: 0
+            outSlope: 0
+            tangentMode: 0
+            weightedMode: 0
+            inWeight: 0
+            outWeight: 0
+          - serializedVersion: 3
+            time: 1
+            value: 0
             inSlope: 0
             outSlope: 0
             tangentMode: 0
