@@ -7,8 +7,8 @@ public class SwordWeapon : Weapon
     // Start is called before the first frame update
     void Awake()
     {
-        baseDamage = 0;
-        
+        baseDamage = 3;
+        _heavyDmg = 100;
     }
 
     private new void Start()

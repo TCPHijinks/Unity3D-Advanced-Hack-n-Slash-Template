@@ -6,6 +6,7 @@ public abstract class Character : MonoBehaviour
 {
     protected Rigidbody rb;
     protected CharacterAnimManager animManager;
+    public GroundedCheck groundedCheck;
     [SerializeField] [Range(0, 1)] protected float moveSpeed = .1f;
 
 
@@ -75,13 +76,27 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     private void FixedUpdate()
     {
-        if (_moving && !_knockback.doRequest) rb.AddForce(transform.forward * _speed);
+
+        if (_moving && !_knockback.doRequest && groundedCheck.IsGrounded)
+        {
+            rb.velocity = new Vector3(0, rb.velocity.y, 0);
+            rb.AddForce(transform.forward * (_speed * 1.5f));
+        }
+        else if(!groundedCheck.IsGrounded)
+        {
+            rb.AddForce(-transform.up * 500);
+        }
+
+     //   
 
         if (_knockback.doRequest)
-        {         
-           rb.AddForce(CalcStunMoveDir(_knockback.src) * _knockback.force, ForceMode.Impulse);
+        {
+            rb.velocity = new Vector3(0, rb.velocity.y, 0);
+            rb.AddForce(CalcStunMoveDir(_knockback.src) * _knockback.force, ForceMode.Impulse);
             _knockback.doRequest = false;
-        }     
+        }   
+        
+
     }
     private float _speed;
 

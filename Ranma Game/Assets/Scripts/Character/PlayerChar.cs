@@ -10,8 +10,10 @@ public class PlayerChar : Character
     {
         rb = GetComponent<Rigidbody>();
         animManager = GetComponent<CharacterAnimManager>();
+        groundedCheck = GetComponent<GroundedCheck>();
 
         controls = new PlayerControls();
+
         controls.Gameplay.Maneuver.performed += ctx => Maneuver();
         controls.Gameplay.AttackStd.performed += ctx => AttackStd();
         controls.Gameplay.AttackHeavy.performed += ctx => AttackHeavy();

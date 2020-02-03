@@ -22,12 +22,12 @@ public class Weapon : Effector, IDamages
 
 
 
-    public int WeaponTypeStandardBonusDamage { get => _crushDmg; }
-    protected int _crushDmg = 0;
-    public int WeaponTypeHeavyBonusDamage { get => _pierceDmg; }
-    protected int _pierceDmg = 0;
-    public int WeaponTypeChargedBonusDamage { get => _slashDmg; }
-    protected int _slashDmg = 0;
+    public int WeaponTypeStandardBonusDamage { get => _stdDmg; }
+    protected int _stdDmg = 0;
+    public int WeaponTypeHeavyBonusDamage { get => _heavyDmg; }
+    protected int _heavyDmg = 0;
+    public int WeaponTypeChargedBonusDamage { get => _chargedDmg; }
+    protected int _chargedDmg = 0;
    
 
 
