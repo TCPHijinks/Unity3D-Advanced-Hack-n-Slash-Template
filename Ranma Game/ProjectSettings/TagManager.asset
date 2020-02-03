@@ -6,6 +6,7 @@ TagManager:
   tags:
   - Enemy
   - Ground
+  - Bounce
   layers:
   - Default
   - TransparentFX
