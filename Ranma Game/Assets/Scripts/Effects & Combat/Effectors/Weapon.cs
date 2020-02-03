@@ -122,7 +122,7 @@ public class Weapon : Effector, IDamages
         DoEffects(targetProperties);
 
         // Knockback.
-        targetProperties.character.DoKnockback(knockback + (damage*3), GetComponentInParent<Transform>());
+        targetProperties.character.UpdateKnockbackRequest(knockback + (damage*3), GetComponentInParent<Transform>());
 
         AddNewEffect(typeof(DamageEffect), -damage);      
     }
