@@ -120,12 +120,15 @@ public class Weapon : Effector, IDamages
         // Apply dynamic damage to effects, then remove once applied to target.
         AddNewEffect(typeof(DamageEffect), damage);     
         DoEffects(targetProperties);
-        
+
+        // Knockback.
+        targetProperties.character.DoKnockback(knockback + (damage*3), GetComponentInParent<Transform>());
+
         AddNewEffect(typeof(DamageEffect), -damage);      
     }
 
 
-
+    [SerializeField] private float knockback = 70;
 
      
     private void OnTriggerEnter(Collider other)

@@ -3,17 +3,19 @@ using System.Collections.Generic;
 using UnityEngine;
 
 public class Health : MonoBehaviour
-{ 
+{
+    CharModifyableProperties props;
     [SerializeField] int maxHealth = 10;
     public int CurHP { get; private set; }
    
     void Start()
     {    
         CurHP = maxHealth;
+        props = GetComponent<CharModifyableProperties>();
     }
 
 
-    public void TakeDamage(int amount)
+    public void TakeDamage(int amount, Vector3 dmgSrc)
     {
         if (amount < 0)
         {
@@ -22,10 +24,12 @@ public class Health : MonoBehaviour
         }
         if(amount > 0)
         {            
-            Debug.Log(gameObject.name + " was damaged! (" + amount + "). Remainder " + (CurHP - amount) + ".");
+           // Debug.Log(gameObject.name + " was damaged! (" + amount + "). Remainder " + (CurHP - amount) + ".");
         }
-            
+
+       
         CurHP -= amount;
+        
         if (CurHP <= 0) Destroy(gameObject);        
     }
 

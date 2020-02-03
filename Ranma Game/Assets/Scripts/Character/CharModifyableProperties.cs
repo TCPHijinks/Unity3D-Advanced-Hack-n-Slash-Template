@@ -7,11 +7,13 @@ using UnityEngine;
 /// </summary>
 public class CharModifyableProperties : MonoBehaviour
 {
+    public Character character;
     public CharacterAnimManager AnimManager;
     public Health Health { get; private set; }
     private void Awake()
     {
         AnimManager = GetComponentInChildren<CharacterAnimManager>();
+        character = GetComponent<Character>();
         Health = GetComponent<Health>();    
     }
 

@@ -6,7 +6,7 @@ public class DamageEffect : Effect
 {
     protected override void DoModify()
     {
-        creatureModifyable.Health.TakeDamage((int)amount);
+        creatureModifyable.Health.TakeDamage((int)amount, gameObject.GetComponentInParent<Transform>().position);
         Destroy(this);
     }
 

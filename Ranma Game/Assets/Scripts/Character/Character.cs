@@ -6,40 +6,41 @@ public abstract class Character : MonoBehaviour
 {
     protected Rigidbody rb;
     protected CharacterAnimManager animManager;
-    [SerializeField][Range(0,1)] protected float moveSpeed = .1f;
+    [SerializeField] [Range(0, 1)] protected float moveSpeed = .1f;
 
+
+    protected void MoveAndRotate(Vector3 moveDir){
+        var t = GetMoveAndRotate(moveDir);
+        _speed = t.speed;
+        ApplyRotation(t.rotationDir);
+    }
 
 
     /// <summary>
     /// Move character and rotate to move direction.
     /// </summary>
     /// <param name="moveDirRequest"></param>
-    protected void MoveAndRotate(Vector2 moveDirRequest)
+    private (Vector3 rotationDir, float speed) GetMoveAndRotate(Vector2 moveDirRequest)
     {
-        // No moving or rotation during attacks.
-        if (animManager.CanDoDamage)
+        // No moving or rotation during attacks or not moving.
+        if (animManager.CanDoDamage || moveDirRequest == Vector2.zero)
         {
-            speed = 0;
-            return;
+            _speed = 0;
+            _moving = false;
+            return (rotationDir:transform.forward, speed: 0);
         }
+        _moving = !_knockback.doRequest;
 
-        // No move/rotation if not moving.
-        if (moveDirRequest == Vector2.zero)
-        {
-            moving = false;
-            return;
-        }
-        moving = true;
-        
-        
+
         // Absolute x & y for comparison.
         float absoluteX = Mathf.Abs(moveDirRequest.x);
         float absoluteY = Mathf.Abs(moveDirRequest.y);
+
         // Rounded x & y for direction of movement.
         int roundedX = RoundToNonZero(moveDirRequest.x);
         int roundedY = RoundToNonZero(moveDirRequest.y);
                 
-        bool moveDiagonal = absoluteX > deadZone && absoluteY > deadZone;
+        bool moveDiagonal = absoluteX > _deadZone && absoluteY > _deadZone;
 
 
         Vector3 moveDir;
@@ -58,26 +59,41 @@ public abstract class Character : MonoBehaviour
             moveDir = new Vector3(0, 0, roundedY);
         }
 
-        // Rotate to direction moving.     
-        ApplyRotation(moveDir);
-
-        // Update speed for FixedUpdate physics movement method.
-        speed = (Mathf.Abs(moveDirRequest.sqrMagnitude) * moveSpeed) * 500;
+        return (rotationDir: moveDir, (Mathf.Abs(moveDirRequest.sqrMagnitude) * moveSpeed) * 500);     
     }    
-    private readonly float deadZone = .4f;
-    private bool moving = false;
-    
+    private readonly float _deadZone = .4f;
+    private bool _moving = false;
 
+    
+   
+
+    public void DoKnockback(float force, Transform src) => _knockback = (doRequest: true, src, force);
+    private (bool doRequest, Transform src, float force) _knockback = (false, null, 0);
 
     /// <summary>
     /// Update physics.
     /// </summary>
     private void FixedUpdate()
     {
-        rb.velocity = new Vector3(0, rb.velocity.y, 0);
-        if(moving) rb.AddForce(transform.forward * speed);
+        if (_moving && !_knockback.doRequest) rb.AddForce(transform.forward * _speed);
+
+        if (_knockback.doRequest)
+        {         
+           rb.AddForce(CalcStunMoveDir(_knockback.src) * _knockback.force, ForceMode.Impulse);
+            _knockback.doRequest = false;
+        }     
     }
-    private float speed;
+    private float _speed;
+
+
+
+    private Vector3 CalcStunMoveDir(Transform damageSource) => (transform.position - damageSource.position).normalized;
+    
+        
+
+    
+
+  
 
 
 
@@ -85,11 +101,9 @@ public abstract class Character : MonoBehaviour
     /// Rotate character to look direction.
     /// </summary>
     /// <param name="lookDir"></param>
-    private void ApplyRotation(Vector3 lookDir)
-    {
-        transform.rotation = Quaternion.LookRotation(lookDir);
-    }
-       
+    private void ApplyRotation(Vector3 lookDir) => transform.rotation = Quaternion.LookRotation(lookDir);
+
+
 
 
     /// <summary>
@@ -98,10 +112,12 @@ public abstract class Character : MonoBehaviour
     /// <param name="toRound"></param>
     /// <returns></returns>
     private int RoundToNonZero(float toRound)
-    {
-        if (toRound > 0) return Mathf.CeilToInt(toRound);
-        else return Mathf.FloorToInt(toRound);
+    {      
+        if (toRound == 0) return 0;
+        return toRound > 0 ? 1 : -1; 
     }
+
+    
 
     protected void Maneuver()
     {
@@ -110,12 +126,14 @@ public abstract class Character : MonoBehaviour
 
     protected void AttackStd()
     {
+        _moving = false;
         animManager.DoAttack(AttkType.standard);
     }
 
     protected void AttackHeavy()
     {
-        Debug.Log("KICK TO THE DICK");
+        _moving = false;
+        animManager.DoAttack(AttkType.heavy);       
     }
 
     protected void Interact()
