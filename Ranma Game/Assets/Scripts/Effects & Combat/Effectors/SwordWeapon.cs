@@ -8,7 +8,7 @@ public class SwordWeapon : Weapon
     void Awake()
     {
         baseDamage = 3;
-        _heavyDmg = 100;
+        _heavyDmg = 800;
     }
 
     private new void Start()

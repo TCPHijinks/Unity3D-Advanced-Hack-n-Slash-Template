@@ -16,6 +16,7 @@ public abstract class Character : MonoBehaviour
     [SerializeField] [Range(0, 900)]    private float jumpForce = 90f;
      
     protected void MoveAndRotate(Vector3 moveDir){
+        if (!groundedCheck.IsGrounded) return;
         var t = GetMoveAndRotate(moveDir);
         _speed = t.speed;
         ApplyRotation(t.rotationDir);
@@ -86,6 +87,8 @@ public abstract class Character : MonoBehaviour
     {
         bool IsGrounded = groundedCheck.IsGrounded;
 
+      
+
         // Reset horizontal velocity and move if able.
         if (_moving && !_knockback.doRequest && IsGrounded)
         {
@@ -93,7 +96,7 @@ public abstract class Character : MonoBehaviour
             rb.AddForce(transform.forward * (_speed * 2.5f));
         }
         // Fall faster if in air.
-        else if (!IsGrounded)
+        else if (!_doJump)
         {           
             rb.AddForce(-transform.up * 500);
         }
