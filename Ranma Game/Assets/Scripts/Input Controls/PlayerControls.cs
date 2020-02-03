@@ -97,7 +97,7 @@ public class @PlayerControls : IInputActionCollection, IDisposable
                     ""name"": """",
                     ""id"": ""2cd00bfa-eb1d-443a-be81-8febe9bcc5b0"",
                     ""path"": ""<Gamepad>/buttonNorth"",
-                    ""interactions"": """",
+                    ""interactions"": ""Press,Press(behavior=1)"",
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""Maneuver"",

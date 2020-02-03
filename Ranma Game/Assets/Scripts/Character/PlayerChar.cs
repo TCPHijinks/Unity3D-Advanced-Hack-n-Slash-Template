@@ -14,24 +14,27 @@ public class PlayerChar : Character
 
         controls = new PlayerControls();
 
-        controls.Gameplay.Maneuver.performed += ctx => Maneuver();
+        
+    }
+
+    private void Update()
+    {
+        // Don't move if attacking.
+        MoveAndRotate(moveDir);    
+    }
+
+    private void OnEnable()
+    {
+        controls.Gameplay.Enable();
+
+        controls.Gameplay.Maneuver.started += ctx => Maneuver();
+        controls.Gameplay.Maneuver.performed += ctx => ManeuverEnd();
         controls.Gameplay.AttackStd.performed += ctx => AttackStd();
         controls.Gameplay.AttackHeavy.performed += ctx => AttackHeavy();
         controls.Gameplay.Interact.performed += ctx => Interact();
 
         controls.Gameplay.Move.performed += ctx => moveDir = ctx.ReadValue<Vector2>();
         controls.Gameplay.Move.canceled += ctx => moveDir = Vector2.zero;
-    }
-
-    private void Update()
-    {
-        // Don't move if attacking.
-        MoveAndRotate(moveDir);
-    }
-
-    private void OnEnable()
-    {
-        controls.Gameplay.Enable();
     }
 
     private void OnDisable()

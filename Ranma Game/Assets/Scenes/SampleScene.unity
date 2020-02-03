@@ -728,6 +728,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundedCheck: {fileID: 0}
   moveSpeed: 0.1
+  shortJumpDownForce: 1000
+  jumpForce: 20
 --- !u!114 &268526362
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1015,6 +1017,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   groundedCheck: {fileID: 0}
   moveSpeed: 1
+  shortJumpDownForce: 1000
+  jumpForce: 90
 --- !u!114 &479659241
 MonoBehaviour:
   m_ObjectHideFlags: 0

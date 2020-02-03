@@ -6,10 +6,15 @@ public abstract class Character : MonoBehaviour
 {
     protected Rigidbody rb;
     protected CharacterAnimManager animManager;
-    public GroundedCheck groundedCheck;
-    [SerializeField] [Range(0, 1)] protected float moveSpeed = .1f;
 
+    [HideInInspector] public GroundedCheck groundedCheck;
 
+    [Header("Movement")]
+    [Space(10)]
+    [SerializeField] [Range(0, 1)]      protected float moveSpeed = .6f;
+    [SerializeField] [Range(0, 9000)]   private int shortJumpDownForce = 1000;   
+    [SerializeField] [Range(0, 900)]    private float jumpForce = 90f;
+     
     protected void MoveAndRotate(Vector3 moveDir){
         var t = GetMoveAndRotate(moveDir);
         _speed = t.speed;
@@ -71,35 +76,55 @@ public abstract class Character : MonoBehaviour
     public void DoKnockback(float force, Transform src) => _knockback = (doRequest: true, src, force);
     private (bool doRequest, Transform src, float force) _knockback = (false, null, 0);
 
+
+
+
     /// <summary>
     /// Update physics.
     /// </summary>
     private void FixedUpdate()
     {
+        bool IsGrounded = groundedCheck.IsGrounded;
 
-        if (_moving && !_knockback.doRequest && groundedCheck.IsGrounded)
+        // Reset horizontal velocity and move if able.
+        if (_moving && !_knockback.doRequest && IsGrounded)
         {
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
-            rb.AddForce(transform.forward * (_speed * 1.5f));
+            rb.AddForce(transform.forward * (_speed * 2.5f));
         }
-        else if(!groundedCheck.IsGrounded)
-        {
+        // Fall faster if in air.
+        else if (!IsGrounded)
+        {           
             rb.AddForce(-transform.up * 500);
         }
 
-     //   
 
+        // If knockback requested, apply appropriate force.
         if (_knockback.doRequest)
         {
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
             rb.AddForce(CalcStunMoveDir(_knockback.src) * _knockback.force, ForceMode.Impulse);
             _knockback.doRequest = false;
-        }   
-        
-
+        }
+        // Apply jump force if can jump & is requested.
+        else if (_doJump && IsGrounded)
+        {
+            rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
+            rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);
+        }
+        // Stop jump state if falling down.
+        if (_doJump && rb.velocity.y < 0 && !IsGrounded)
+        {         
+            _doJump = false;
+        }
+        // Shorten jump by adding extra down force if not holding jump during ascent. 
+        else if (!_doJump && rb.velocity.y > 0 && !IsGrounded)
+        {          
+            rb.AddForce(-transform.up * shortJumpDownForce);
+        }
     }
     private float _speed;
-
+    
 
 
     private Vector3 CalcStunMoveDir(Transform damageSource) => (transform.position - damageSource.position).normalized;
@@ -135,8 +160,14 @@ public abstract class Character : MonoBehaviour
     
 
     protected void Maneuver()
-    {
-        Debug.Log("JUMP! ROLL!");
+    {        
+        _doJump = true;      
+    }
+    private bool _doJump = false;
+
+    protected void ManeuverEnd()
+    {      
+        _doJump = false;
     }
 
     protected void AttackStd()
