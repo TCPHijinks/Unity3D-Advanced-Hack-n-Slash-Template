@@ -33,8 +33,21 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void Maneuver()
     {
+        if (groundedCheck.IsGrounded) _doingAirManeuver = false;
+
+        if (!groundedCheck.IsGrounded && !_doingJump && !_doingAirManeuver)
+            InAirManeuver();
+
         _doingJump = true;
     }
+
+    private void InAirManeuver()
+    {
+        _doingAirManeuver = true;
+        UpdateKnockbackRequest(jumpForce, transform.localPosition - transform.forward * 10);
+    }
+
+    private bool _doingAirManeuver = false;
 
     /// <summary>
     /// Request maneuver end.
@@ -126,12 +139,12 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     /// <param name="force"></param>
     /// <param name="src"></param>
-    public void UpdateKnockbackRequest(float force, Transform src)
+    public void UpdateKnockbackRequest(float force, Vector3 srcPos)
     {
-        _knockbackRequest = (true, src, force, true);
+        _knockbackRequest = (true, srcPos, force, true);
     }
 
-    private (bool startNewRequest, Transform src, float force, bool doingRequest) _knockbackRequest = (false, null, 0, false);
+    private (bool startNewRequest, Vector3 srcPos, float force, bool doingRequest) _knockbackRequest = (false, Vector3.zero, 0, false);
 
     /// <summary>
     /// Handles knockback state and applies appropriate physics forces.
@@ -142,7 +155,7 @@ public abstract class Character : MonoBehaviour
         bool knockbackActive = !_knockbackRequest.startNewRequest && _knockbackRequest.doingRequest;
         if (onBounceSurface)
         {
-            _knockbackRequest = (true, groundedCheck.BounceSurfaceCheck.surfaceTransform, jumpForce, true);
+            _knockbackRequest = (true, groundedCheck.BounceSurfaceCheck.surfacePos, jumpForce, true);
         }
 
         if (knockbackActive)
@@ -154,7 +167,7 @@ public abstract class Character : MonoBehaviour
         if (_knockbackRequest.startNewRequest)
         {
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
-            rb.AddForce(GetKnockbackMoveDir(_knockbackRequest.src) * _knockbackRequest.force, ForceMode.Impulse);
+            rb.AddForce(GetKnockbackMoveDir(_knockbackRequest.srcPos) * _knockbackRequest.force, ForceMode.Impulse);
             _knockbackRequest.startNewRequest = false;
         }
     }
@@ -212,11 +225,11 @@ public abstract class Character : MonoBehaviour
     /// <summary>
     /// Calculates direction of knockback from source.
     /// </summary>
-    /// <param name="knockbackSource"></param>
+    /// <param name="sourcePosition"></param>
     /// <returns>Direction to apply knockback forces to.</returns>
-    private Vector3 GetKnockbackMoveDir(Transform knockbackSource)
+    private Vector3 GetKnockbackMoveDir(Vector3 sourcePosition)
     {
-        return (transform.position - knockbackSource.position).normalized;
+        return (transform.position - sourcePosition).normalized;
     }
 
     /// <summary>
