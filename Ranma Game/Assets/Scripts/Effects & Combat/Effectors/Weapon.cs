@@ -5,7 +5,7 @@ using UnityEngine;
 public class Weapon : Effector, IDamages
 {
     private CharacterAnimManager animManager;
-    protected int baseDamage = 5;
+    [SerializeField] protected int baseDamage = 5;
 
     protected void Start()
     {

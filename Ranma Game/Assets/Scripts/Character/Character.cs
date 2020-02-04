@@ -54,7 +54,8 @@ public abstract class Character : MonoBehaviour
     {
         animManager.CancelChargedAttack();
         _doingAirManeuver = true;
-        UpdateKnockbackRequest(jumpForce, transform.localPosition - transform.forward * 10);
+        var target = transform.forward * 10 + transform.up * 5;
+        UpdateKnockbackRequest(jumpForce, transform.localPosition - target);
     }
 
     private bool _doingAirManeuver = false;
