@@ -5,7 +5,6 @@ using UnityEngine;
 public class Weapon : Effector, IDamages
 {
     private CharacterAnimManager animManager;
-    public bool CanDamage = false;
     protected int baseDamage = 5;
 
     protected void Start()
@@ -87,37 +86,17 @@ public class Weapon : Effector, IDamages
 
     private Dictionary<System.Type, float> effectsAndAmounts = new Dictionary<System.Type, float>();
 
-    /// <summary>
-    /// Applies dynamic attack damage + all other effects to target.
-    /// </summary>
-    /// <param name="targetProperties"></param>
-    /// <param name="dmgType"></param>
-    public void DoDamage(CharModifyableProperties targetProperties, AttkType dmgType)
-    {
-        // Calculate dynamic damage.
-        int damage = GetDamage(dmgType);
-
-        // Apply dynamic damage to effects, then remove once applied to target.
-        AddNewEffect(typeof(DamageEffect), damage);
-        DoEffects(targetProperties);
-
-        // Knockback.
-        targetProperties.character.UpdateKnockbackRequest(knockback + (damage * 3), GetComponentInParent<Transform>().position);
-
-        AddNewEffect(typeof(DamageEffect), -damage);
-    }
-
     [SerializeField] private float knockback = 70;
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!CanDamage && animManager.CanDoDamage) return;
+        if (!animManager.CanDoDamage) return;
         DoDmgIfHitNewCreature(other);
     }
 
     private void OnTriggerStay(Collider other)
     {
-        if (!CanDamage && animManager.CanDoDamage) return;
+        if (!animManager.CanDoDamage) return;
         DoDmgIfHitNewCreature(other);
     }
 
@@ -136,11 +115,57 @@ public class Weapon : Effector, IDamages
 
     [SerializeField] private string targetTag = "Enemy";
     private List<GameObject> alreadyDamaged = new List<GameObject>();
+    [SerializeField] [Range(0, 1)] private float AttackComboDamagePenalty = .5f;
+    [SerializeField] [Range(0, 1)] private float AttackComboKnockbackPenalty = .5f;
+
+    /// <summary>
+    /// Applies dynamic attack damage + all other effects to target.
+    /// </summary>
+    /// <param name="targetProperties"></param>
+    /// <param name="dmgType"></param>
+    public void DoDamage(CharModifyableProperties targetProperties, AttkType dmgType)
+    {
+        // Calculate dynamic damage.
+        var _damage = GetDamage(dmgType);
+        var _knockback = knockback + (_damage * 3);
+        if (animManager.InAttkComboAndCanMove)
+        {
+            _damage -= (int)(_damage * AttackComboDamagePenalty);
+            _knockback -= knockback * AttackComboKnockbackPenalty;
+
+            _thisComboCurDamage += _damage;
+        }
+
+        // Apply dynamic damage to effects, then remove once applied to target.
+        AddNewEffect(typeof(DamageEffect), _damage);
+        DoEffects(targetProperties);
+
+        // Knockback.
+        targetProperties.character.UpdateKnockbackRequest(_knockback, GetComponentInParent<Transform>().position);
+
+        AddNewEffect(typeof(DamageEffect), -_damage);
+    }
 
     protected void Update()
     {
         // Reset already hit list so can damage target again in next attack.
         if (alreadyDamaged.Count > 0 && !animManager.CanDoDamage)
             alreadyDamaged = new List<GameObject>();
+        if (_thisComboCurDamage >= maxComboDamage)
+        {
+            animManager.CancelChargedAttack();
+            _doComboFinish = true;
+        }
+        if (_doComboFinish && !animManager.DoingAttack)
+        {
+            Debug.Log("WORK");
+            _thisComboCurDamage = 0f;
+            _doComboFinish = false;
+            animManager.DoAttack(AttkType.heavy);
+        }
     }
+
+    private bool _doComboFinish = false;
+    private float _thisComboCurDamage = 0f;
+    [SerializeField] private int maxComboDamage = 20;
 }

@@ -23,12 +23,12 @@ public abstract class Character : MonoBehaviour
     protected void MoveAndRotate(Vector3 moveDir)
     {
         if (!groundedCheck.IsGrounded || _knockbackRequest.doingRequest) return;
-        _moving = !animManager.CanDoDamage;
-        if (!_moving) _moving = animManager.InAttackAndCanMove;
-        Debug.Log(_moving);
+        _moving = !animManager.DoingAttack;
+        if (!_moving) _moving = animManager.InAttkComboAndCanMove;
+
         var (rotationDir, speed) = GetMoveAndRotate(moveDir);
 
-        if (animManager.InAttackAndCanMove)
+        if (animManager.InAttkComboAndCanMove)
             _speed = speed * animManager.AnimMoveSpeedPenalty;
         else
             _speed = speed;
@@ -75,7 +75,6 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void AttackStd()
     {
-        Debug.Log("here");
         toggleStdOff = !toggleStdOff;
         if (toggleStdOff) animManager.CancelChargedAttack();
         if (_knockbackRequest.doingRequest) return;
@@ -236,7 +235,7 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     private void FixedUpdate()
     {
-        if (!groundedCheck.IsGrounded) animManager.CancelChargedAttack();
+        //  if (!groundedCheck.IsGrounded) animManager.CancelChargedAttack();
 
         HandleKnockback();
 
