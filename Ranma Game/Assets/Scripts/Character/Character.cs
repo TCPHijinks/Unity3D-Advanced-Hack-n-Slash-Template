@@ -23,8 +23,16 @@ public abstract class Character : MonoBehaviour
     protected void MoveAndRotate(Vector3 moveDir)
     {
         if (!groundedCheck.IsGrounded || _knockbackRequest.doingRequest) return;
+        _moving = !animManager.CanDoDamage;
+        if (!_moving) _moving = animManager.InAttackAndCanMove;
+        Debug.Log(_moving);
         var (rotationDir, speed) = GetMoveAndRotate(moveDir);
-        _speed = speed;
+
+        if (animManager.InAttackAndCanMove)
+            _speed = speed * animManager.AnimMoveSpeedPenalty;
+        else
+            _speed = speed;
+
         ApplyRotation(rotationDir);
     }
 
@@ -33,6 +41,7 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void Maneuver()
     {
+        animManager.CancelChargedAttack();
         if (groundedCheck.IsGrounded) _doingAirManeuver = false;
 
         if (!groundedCheck.IsGrounded && !_doingJump && !_doingAirManeuver)
@@ -43,6 +52,7 @@ public abstract class Character : MonoBehaviour
 
     private void InAirManeuver()
     {
+        animManager.CancelChargedAttack();
         _doingAirManeuver = true;
         UpdateKnockbackRequest(jumpForce, transform.localPosition - transform.forward * 10);
     }
@@ -54,6 +64,7 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void ManeuverEnd()
     {
+        animManager.CancelChargedAttack();
         _doingJump = false;
     }
 
@@ -64,18 +75,24 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void AttackStd()
     {
+        Debug.Log("here");
+        toggleStdOff = !toggleStdOff;
+        if (toggleStdOff) animManager.CancelChargedAttack();
         if (_knockbackRequest.doingRequest) return;
-        _moving = false;
         animManager.DoAttack(AttkType.standard);
+        if (toggleStdOff) animManager.CancelChargedAttack();
     }
+
+    private bool toggleStdOff = true;
 
     /// <summary>
     /// Request heavy attack, and consequential stop of input-driven movement.
     /// </summary>
     protected void AttackHeavy()
     {
+        animManager.CancelChargedAttack();
         if (_knockbackRequest.doingRequest) return;
-        _moving = false;
+
         animManager.DoAttack(AttkType.heavy);
     }
 
@@ -84,6 +101,7 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void Interact()
     {
+        animManager.CancelChargedAttack();
         Debug.Log("JUST USE IT!");
     }
 
@@ -94,13 +112,11 @@ public abstract class Character : MonoBehaviour
     private (Vector3 rotationDir, float speed) GetMoveAndRotate(Vector2 moveDirRequest)
     {
         // No moving or rotation during attacks or not moving.
-        if (animManager.CanDoDamage || moveDirRequest == Vector2.zero)
+        if (!_moving || moveDirRequest == Vector2.zero)
         {
             _speed = 0;
-            _moving = false;
             return (rotationDir: transform.forward, speed: 0);
         }
-        _moving = !_knockbackRequest.startNewRequest;
 
         // Absolute x & y for comparison.
         float absoluteX = Mathf.Abs(moveDirRequest.x);
@@ -155,17 +171,20 @@ public abstract class Character : MonoBehaviour
         bool knockbackActive = !_knockbackRequest.startNewRequest && _knockbackRequest.doingRequest;
         if (onBounceSurface)
         {
+            animManager.CancelChargedAttack();
             _knockbackRequest = (true, groundedCheck.BounceSurfaceCheck.surfacePos, jumpForce, true);
         }
 
         if (knockbackActive)
         {
+            animManager.CancelChargedAttack();
             float curVelocityToExit = new Vector2(rb.velocity.x, rb.velocity.z).magnitude;
             if (curVelocityToExit < 1) _knockbackRequest.doingRequest = false;
         }
 
         if (_knockbackRequest.startNewRequest)
         {
+            animManager.CancelChargedAttack();
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
             rb.AddForce(GetKnockbackMoveDir(_knockbackRequest.srcPos) * _knockbackRequest.force, ForceMode.Impulse);
             _knockbackRequest.startNewRequest = false;
@@ -217,6 +236,8 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     private void FixedUpdate()
     {
+        if (!groundedCheck.IsGrounded) animManager.CancelChargedAttack();
+
         HandleKnockback();
 
         HandleMovingAndJump();

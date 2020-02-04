@@ -4,28 +4,44 @@ using UnityEngine;
 
 public class CharacterAnimManager : MonoBehaviour
 {
-    Animator anim;
+    private Animator anim;
+
     // Start is called before the first frame update
-    void Awake()
+    private void Awake()
     {
         anim = GetComponentInChildren<Animator>();
     }
-        
 
     public bool CanDoDamage => anim.GetFloat("Damage") > 0;
 
     public AttkType GetCurAttack => (AttkType)anim.GetInteger("AttackType");
 
-    
+    public bool InAttackAndCanMove { get; private set; } = false;
+
+    public float AnimMoveSpeedPenalty { get; private set; }
 
     public void DoAttack(AttkType attackType)
     {
         anim.SetInteger("AttackType", (int)attackType);
+        if (attackType == AttkType.standard) _doChargedAttk = !_doChargedAttk;
+    }
+
+    public void CancelChargedAttack()
+    {
+        _doChargedAttk = false;
+    }
+
+    private bool _doChargedAttk = false;
+
+    private void Update()
+    {
     }
 
     private void LateUpdate()
     {
-        if(!CanDoDamage) anim.SetInteger("AttackType", (int)AttkType.none);
+        if (!CanDoDamage && !_doChargedAttk) anim.SetInteger("AttackType", (int)AttkType.none);
+        InAttackAndCanMove = anim.GetCurrentAnimatorStateInfo(0).IsTag("CanMoveAttack");
+        AnimMoveSpeedPenalty = anim.GetFloat("MoveSpeedPenaltyPercentage");
+        anim.SetBool("ChargedAttack", _doChargedAttk);
     }
-
 }
