@@ -15,6 +15,7 @@ public abstract class Character : MonoBehaviour
 
     [SerializeField] [Range(0, 9000)] private int shortJumpDownForce = 1000;
     [SerializeField] [Range(0, 900)] private float jumpForce = 90f;
+    [SerializeField] [Range(0, 900)] private float dashForce = 90f;
 
     /// <summary>
     /// Request move and rotate to given Vector3.
@@ -55,7 +56,7 @@ public abstract class Character : MonoBehaviour
         animManager.CancelChargedAttack();
         _doingAirManeuver = true;
         var target = transform.forward * 10 + transform.up * 5;
-        UpdateKnockbackRequest(jumpForce, transform.localPosition - target);
+        UpdateKnockbackRequest(dashForce, transform.localPosition - target);
     }
 
     private bool _doingAirManeuver = false;
