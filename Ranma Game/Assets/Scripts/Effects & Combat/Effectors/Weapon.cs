@@ -110,7 +110,7 @@ public class Weapon : Effector, IDamages
         if (!animManager.CanDoDamage) return;
         if (alreadyDamaged.Contains(other.gameObject)) return;
         alreadyDamaged.Add(other.gameObject);
-        DoDamage(other.gameObject.GetComponent<CharModifyableProperties>(), animManager.GetCurAttack);
+        DoDamage(other.gameObject.GetComponent<CharModifyableProperties>(), animManager.CurAttack);
     }
 
     [SerializeField] private string targetTag = "Enemy";
@@ -153,7 +153,7 @@ public class Weapon : Effector, IDamages
             alreadyDamaged = new List<GameObject>();
         if (_thisComboCurDamage >= maxComboDamage)
         {
-            animManager.CancelChargedAttack();
+            animManager.SetCancelChargedAttack();
             _doComboFinish = true;
         }
         if (_doComboFinish && !animManager.DoingAttack)

@@ -97,7 +97,7 @@ public class @PlayerControls : IInputActionCollection, IDisposable
                     ""name"": """",
                     ""id"": ""9b0465ff-7c05-4eb0-b104-2cbf086d56eb"",
                     ""path"": ""<Gamepad>/buttonWest"",
-                    ""interactions"": """",
+                    ""interactions"": ""Press,Press(behavior=1)"",
                     ""processors"": """",
                     ""groups"": """",
                     ""action"": ""AttackHeavy"",

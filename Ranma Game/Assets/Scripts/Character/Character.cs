@@ -42,7 +42,7 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void Maneuver()
     {
-        animManager.CancelChargedAttack();
+        animManager.SetCancelChargedAttack();
         if (groundedCheck.IsGrounded) _doingAirManeuver = false;
 
         if (!groundedCheck.IsGrounded && !_doingJump && !_doingAirManeuver)
@@ -53,7 +53,7 @@ public abstract class Character : MonoBehaviour
 
     private void InAirManeuver()
     {
-        animManager.CancelChargedAttack();
+        animManager.SetCancelChargedAttack();
         _doingAirManeuver = true;
         var target = transform.forward * 10 + transform.up * 5;
         UpdateKnockbackRequest(dashForce, transform.localPosition - target);
@@ -66,7 +66,7 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void ManeuverEnd()
     {
-        animManager.CancelChargedAttack();
+        animManager.SetCancelChargedAttack();
         _doingJump = false;
     }
 
@@ -77,23 +77,17 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void AttackStd()
     {
-        toggleStdOff = !toggleStdOff;
-        if (toggleStdOff) animManager.CancelChargedAttack();
         if (_knockbackRequest.doingRequest) return;
         animManager.DoAttack(AttkType.standard);
-        if (toggleStdOff) animManager.CancelChargedAttack();
     }
-
-    private bool toggleStdOff = true;
 
     /// <summary>
     /// Request heavy attack, and consequential stop of input-driven movement.
     /// </summary>
     protected void AttackHeavy()
     {
-        animManager.CancelChargedAttack();
+        animManager.SetCancelChargedAttack();
         if (_knockbackRequest.doingRequest) return;
-
         animManager.DoAttack(AttkType.heavy);
     }
 
@@ -102,7 +96,7 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void Interact()
     {
-        animManager.CancelChargedAttack();
+        animManager.SetCancelChargedAttack();
         Debug.Log("JUST USE IT!");
     }
 
@@ -172,20 +166,20 @@ public abstract class Character : MonoBehaviour
         bool knockbackActive = !_knockbackRequest.startNewRequest && _knockbackRequest.doingRequest;
         if (onBounceSurface)
         {
-            animManager.CancelChargedAttack();
+            animManager.SetCancelChargedAttack();
             _knockbackRequest = (true, groundedCheck.BounceSurfaceCheck.surfacePos, jumpForce, true);
         }
 
         if (knockbackActive)
         {
-            animManager.CancelChargedAttack();
+            animManager.SetCancelChargedAttack();
             float curVelocityToExit = new Vector2(rb.velocity.x, rb.velocity.z).magnitude;
             if (curVelocityToExit < 1) _knockbackRequest.doingRequest = false;
         }
 
         if (_knockbackRequest.startNewRequest)
         {
-            animManager.CancelChargedAttack();
+            animManager.SetCancelChargedAttack();
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
             rb.AddForce(GetKnockbackMoveDir(_knockbackRequest.srcPos) * _knockbackRequest.force, ForceMode.Impulse);
             _knockbackRequest.startNewRequest = false;
@@ -237,8 +231,6 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     private void FixedUpdate()
     {
-        //  if (!groundedCheck.IsGrounded) animManager.CancelChargedAttack();
-
         HandleKnockback();
 
         HandleMovingAndJump();

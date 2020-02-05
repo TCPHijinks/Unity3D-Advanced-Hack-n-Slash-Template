@@ -14,52 +14,93 @@ public class CharacterAnimManager : MonoBehaviour
 
     public bool CanDoDamage => anim.GetFloat("Damage") > 0;
 
-    public AttkType GetCurAttack => (AttkType)anim.GetInteger("AttackType");
+    public AttkType CurAttack => (AttkType)anim.GetInteger("AttackType");
 
+    /// <summary>
+    /// Return whether in any Animator state with an "Attack" or "CanMoveAttack" tag.
+    /// </summary>
     public bool DoingAttack { get; private set; }
 
+    /// <summary>
+    /// Return whether in an Animator state tagged "CanMoveAttack".
+    /// </summary>
     public bool InAttkComboAndCanMove { get; private set; } = false;
 
+    /// <summary>
+    /// Return penalty percentile(%) to speed (0.0 to 1.0) from Animator animation curves.
+    /// </summary>
     public float AnimMoveSpeedPenalty { get; private set; }
 
+    private bool _inBaseAnimTransition = false;
+    private bool _updatedAttackDuringTransition = false;
+    private bool _justFinishedTransitionedToAttk = false;
+    private bool _startedBaseTransition = false;
+
+    /// <summary>
+    /// Request Animator to play specified Attack Type.
+    /// </summary>
+    /// <param name="attackType"></param>
     public void DoAttack(AttkType attackType)
     {
-        anim.SetInteger("AttackType", (int)attackType);
-        if (!DoingAttack && !inBaseAnimTransition && attackType == AttkType.standard) _doChargedAttk = !_doChargedAttk;
+        _canDoAttack = !_canDoAttack; // TEMP - Toggles for player so Button Up & Button Down don't call Attack() twice.
+        if (_inBaseAnimTransition && _canDoAttack) _updatedAttackDuringTransition = true;
+        if (_canDoAttack) anim.SetInteger("AttackType", (int)attackType);
     }
 
-    private bool canDoCharged = false;
+    // If to do charged attack, and whether able to.
+    private bool doChargedAttk = false, _canDoAttack = false;
 
-    public void CancelChargedAttack()
+    /// <summary>
+    /// Cancel charged attack.
+    /// </summary>
+    public void SetCancelChargedAttack()
     {
-        _doChargedAttk = false;
+        doChargedAttk = false;
     }
 
-    private bool _doChargedAttk = false;
-
+    /// <summary>
+    /// Update animator parameters at start of each frame.
+    /// </summary>
     private void Update()
     {
-        inBaseAnimTransition = anim.IsInTransition(0);
-        if (inBaseAnimTransition) startedBaseTransition = true;
+        // Check if base layer (0) is in a transition between animation states.
+        _inBaseAnimTransition = anim.IsInTransition(0);
+
+        // Started transition.
+        if (!_startedBaseTransition && _inBaseAnimTransition) _startedBaseTransition = true;
+
+        // Just transitioned if transition started, ended, and now in an Attack.
+        _justFinishedTransitionedToAttk = DoingAttack && _startedBaseTransition && !_inBaseAnimTransition;
+
+        // Reset attack in prep for next one.
+        if (!_canDoAttack && _justFinishedTransitionedToAttk && !_updatedAttackDuringTransition ||  // Reset attack if just transitioned w/o trying to attack again
+            !_canDoAttack && _startedBaseTransition && !_inBaseAnimTransition && !DoingAttack)// OR if can't attack and just exited attack state w/o trying to attack again.
+        {
+            anim.SetInteger("AttackType", (int)AttkType.none);
+        }
+        // Reset that gave attack request during transition once acted upon by not resetting attack above.
+        if (_updatedAttackDuringTransition && !_inBaseAnimTransition) _updatedAttackDuringTransition = false;
+
+        // If just finished transition to an attack, not start of transition.
+        if (_justFinishedTransitionedToAttk) _startedBaseTransition = false;
+
+        // If can do an attack (button down) and just transitioned into an attack.
+        if (_canDoAttack && _justFinishedTransitionedToAttk)
+        {
+            doChargedAttk = true;
+        }
+        // Can't charge attack if not able to attack and no attack executing.
+        else if (!_canDoAttack && CurAttack != AttkType.none) doChargedAttk = false;
     }
 
-    private bool startedBaseTransition = false;
-
+    /// <summary>
+    /// Get and update animator parameters at end of each frame.
+    /// </summary>
     private void LateUpdate()
     {
-        //  if (!CanDoDamage && !_doChargedAttk) anim.SetInteger("AttackType", (int)AttkType.none);
         InAttkComboAndCanMove = anim.GetCurrentAnimatorStateInfo(0).IsTag("CanMoveAttack");
         DoingAttack = anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack") || InAttkComboAndCanMove;
         AnimMoveSpeedPenalty = anim.GetFloat("MoveSpeedPenaltyPercentage");
-        anim.SetBool("ChargedAttack", _doChargedAttk);
-
-        // If transition just finished to a new attack, reset attack in prep for next one.
-        if (startedBaseTransition && !inBaseAnimTransition && anim.GetInteger("AttackType") != (int)AttkType.none)
-        {
-            startedBaseTransition = false;
-            anim.SetInteger("AttackType", (int)AttkType.none);
-        }
+        anim.SetBool("ChargedAttack", doChargedAttk);
     }
-
-    private bool inBaseAnimTransition = false;
 }
