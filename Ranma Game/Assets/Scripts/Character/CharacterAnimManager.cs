@@ -24,14 +24,11 @@ public class CharacterAnimManager : MonoBehaviour
 
     public void DoAttack(AttkType attackType)
     {
-        altAnimIfTwo++;
-
         anim.SetInteger("AttackType", (int)attackType);
         if (!DoingAttack && !inBaseAnimTransition && attackType == AttkType.standard) _doChargedAttk = !_doChargedAttk;
     }
 
     private bool canDoCharged = false;
-    private int altAnimIfTwo = 0;
 
     public void CancelChargedAttack()
     {
@@ -44,12 +41,6 @@ public class CharacterAnimManager : MonoBehaviour
     {
         inBaseAnimTransition = anim.IsInTransition(0);
         if (inBaseAnimTransition) startedBaseTransition = true;
-
-        if (altAnimIfTwo >= 2 && DoingAttack && startedBaseTransition && !inBaseAnimTransition)
-        {
-            altAnimIfTwo = 0;
-            anim.SetBool("AltAttackAnim", anim.GetBool("AltAttackAnim") == false);
-        }
     }
 
     private bool startedBaseTransition = false;
