@@ -16,7 +16,6 @@ public class CameraFollow : MonoBehaviour
     {
         //Set up things on the start method
         camera = transform;
-        Time.timeScale = .25f;
         //   Cursor.lockState = CursorLockMode.Locked;
         //   Cursor.visible = false;
     }
