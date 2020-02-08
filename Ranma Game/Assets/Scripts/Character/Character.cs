@@ -23,18 +23,25 @@ public abstract class Character : MonoBehaviour
     /// <param name="moveDir"></param>
     protected void MoveAndRotate(Vector3 moveDir)
     {
-        if (!groundedCheck.IsGrounded || _knockbackRequest.doingRequest) return;
-        _moving = !animManager.DoingAttack;
-        if (!_moving) _moving = animManager.InAttkComboAndCanMove;
+        if (_knockbackRequest.doingRequest) return;
 
-        var (rotationDir, speed) = GetMoveAndRotate(moveDir);
+        // Update if can move in current animation state.
+        _moving = !animManager.DoingAttack || animManager.InAttkComboAndCanMove;
+
+        // Get updated rotation and speed based on requested direction.
+        var (rotationDir, speed) = GetRotationAndSpeed(moveDir);
+        ApplyRotation(rotationDir);
+
+        if (!groundedCheck.IsGrounded)
+        {
+            _speed = 0;
+            return;
+        }
 
         if (animManager.InAttkComboAndCanMove)
             _speed = speed * animManager.AnimMoveSpeedPenalty;
         else
             _speed = speed;
-
-        ApplyRotation(rotationDir);
     }
 
     /// <summary>
@@ -42,17 +49,28 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void Maneuver()
     {
+        // Stop attack animations when maneuver.
         animManager.SetCancelChargedAttack();
-        if (groundedCheck.IsGrounded) _doingAirManeuver = false;
 
-        if (!groundedCheck.IsGrounded && !_doingJump && !_doingAirManeuver)
+        // Do mid-air maneuver if register jump again while ascending up in the air.
+        if (!groundedCheck.IsGrounded && !_doingAirManeuver && !doJumpToggle && rb.velocity.y >= 0)
             InAirManeuver();
 
-        _doingJump = true;
+        // If normal jump.
+        if (doJumpToggle)
+        {
+            _doingJump = true;
+        }
+
+        // Flip toggle.
+        doJumpToggle = !doJumpToggle;
     }
+
+    private bool doJumpToggle = true;
 
     private void InAirManeuver()
     {
+        Debug.Log("CALLED");
         animManager.SetCancelChargedAttack();
         _doingAirManeuver = true;
         var target = transform.forward * 10 + transform.up * 5;
@@ -67,7 +85,6 @@ public abstract class Character : MonoBehaviour
     protected void ManeuverEnd()
     {
         animManager.SetCancelChargedAttack();
-        _doingJump = false;
     }
 
     private bool _doingJump = false;
@@ -104,7 +121,7 @@ public abstract class Character : MonoBehaviour
     /// Move character and rotate to move direction.
     /// </summary>
     /// <param name="moveDirRequest"></param>
-    private (Vector3 rotationDir, float speed) GetMoveAndRotate(Vector2 moveDirRequest)
+    private (Vector3 rotationDir, float speed) GetRotationAndSpeed(Vector2 moveDirRequest)
     {
         // No moving or rotation during attacks or not moving.
         if (!_moving || moveDirRequest == Vector2.zero)
@@ -194,6 +211,12 @@ public abstract class Character : MonoBehaviour
         bool IsGrounded = groundedCheck.IsGrounded;
         var (newKnockbackRequest, _, _, doingKnockback) = _knockbackRequest;
 
+        // Set not air-maneuvering if grounded.
+        if (groundedCheck.IsGrounded)
+        {
+            _doingAirManeuver = false;
+        }
+
         // If trying to move & able to.
         if (_moving && !newKnockbackRequest && IsGrounded && !doingKnockback)
         {
@@ -234,6 +257,12 @@ public abstract class Character : MonoBehaviour
         HandleKnockback();
 
         HandleMovingAndJump();
+
+        // Stop manuever after landing again.
+        if ((_doingJump || _doingAirManeuver) && groundedCheck.IsGrounded)
+        {
+            //       ManeuverEnd();
+        }
     }
 
     /// <summary>

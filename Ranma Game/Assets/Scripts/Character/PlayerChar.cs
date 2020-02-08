@@ -6,6 +6,7 @@ public class PlayerChar : Character
 {
     private PlayerControls controls;
     private Vector2 moveDir = Vector2.zero;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody>();
@@ -13,22 +14,20 @@ public class PlayerChar : Character
         groundedCheck = GetComponent<GroundedCheck>();
 
         controls = new PlayerControls();
-
-        
     }
 
     private void Update()
     {
         // Don't move if attacking.
-        MoveAndRotate(moveDir);    
+        MoveAndRotate(moveDir);
     }
 
     private void OnEnable()
     {
         controls.Gameplay.Enable();
 
-        controls.Gameplay.Maneuver.started += ctx => Maneuver();
-        controls.Gameplay.Maneuver.performed += ctx => ManeuverEnd();
+        controls.Gameplay.Maneuver.performed += ctx => Maneuver();
+        // controls.Gameplay.Maneuver.performed += ctx => ManeuverEnd();
         controls.Gameplay.AttackStd.performed += ctx => AttackStd();
         controls.Gameplay.AttackHeavy.performed += ctx => AttackHeavy();
         controls.Gameplay.Interact.performed += ctx => Interact();
@@ -40,5 +39,5 @@ public class PlayerChar : Character
     private void OnDisable()
     {
         controls.Gameplay.Disable();
-    }   
+    }
 }
