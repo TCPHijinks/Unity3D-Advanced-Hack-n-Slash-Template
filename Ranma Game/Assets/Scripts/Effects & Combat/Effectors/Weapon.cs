@@ -132,8 +132,6 @@ public class Weapon : Effector, IDamages
         {
             _damage -= (int)(_damage * AttackComboDamagePenalty);
             _knockback -= knockback * AttackComboKnockbackPenalty;
-
-            _thisComboCurDamage += _damage;
         }
 
         // Apply dynamic damage to effects, then remove once applied to target.
@@ -151,21 +149,5 @@ public class Weapon : Effector, IDamages
         // Reset already hit list so can damage target again in next attack.
         if (alreadyDamaged.Count > 0 && !animManager.CanDoDamage)
             alreadyDamaged = new List<GameObject>();
-        if (_thisComboCurDamage >= maxComboDamage)
-        {
-            animManager.SetCancelChargedAttack();
-            _doComboFinish = true;
-        }
-        if (_doComboFinish && !animManager.DoingAttack)
-        {
-            Debug.Log("WORK");
-            _thisComboCurDamage = 0f;
-            _doComboFinish = false;
-            animManager.DoAttack(AttkType.heavy);
-        }
     }
-
-    private bool _doComboFinish = false;
-    private float _thisComboCurDamage = 0f;
-    [SerializeField] private int maxComboDamage = 20;
 }

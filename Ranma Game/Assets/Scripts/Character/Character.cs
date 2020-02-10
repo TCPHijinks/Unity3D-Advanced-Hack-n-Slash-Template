@@ -49,9 +49,6 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void Maneuver()
     {
-        // Stop attack animations when maneuver.
-        animManager.SetCancelChargedAttack();
-
         // Do mid-air maneuver if register jump again while ascending up in the air.
         if (!groundedCheck.IsGrounded && !_doingAirManeuver && !doJumpToggle && rb.velocity.y >= 0)
             InAirManeuver();
@@ -70,22 +67,12 @@ public abstract class Character : MonoBehaviour
 
     private void InAirManeuver()
     {
-        Debug.Log("CALLED");
-        animManager.SetCancelChargedAttack();
         _doingAirManeuver = true;
         var target = transform.forward * 10 + transform.up * 5;
         UpdateKnockbackRequest(dashForce, transform.localPosition - target);
     }
 
     private bool _doingAirManeuver = false;
-
-    /// <summary>
-    /// Request maneuver end.
-    /// </summary>
-    protected void ManeuverEnd()
-    {
-        animManager.SetCancelChargedAttack();
-    }
 
     private bool _doingJump = false;
 
@@ -103,7 +90,6 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void AttackHeavy()
     {
-        animManager.SetCancelChargedAttack();
         if (_knockbackRequest.doingRequest) return;
         animManager.DoAttack(AttkType.heavy);
     }
@@ -113,7 +99,6 @@ public abstract class Character : MonoBehaviour
     /// </summary>
     protected void Interact()
     {
-        animManager.SetCancelChargedAttack();
         Debug.Log("JUST USE IT!");
     }
 
@@ -183,20 +168,17 @@ public abstract class Character : MonoBehaviour
         bool knockbackActive = !_knockbackRequest.startNewRequest && _knockbackRequest.doingRequest;
         if (onBounceSurface)
         {
-            animManager.SetCancelChargedAttack();
             _knockbackRequest = (true, groundedCheck.BounceSurfaceCheck.surfacePos, jumpForce, true);
         }
 
         if (knockbackActive)
         {
-            animManager.SetCancelChargedAttack();
             float curVelocityToExit = new Vector2(rb.velocity.x, rb.velocity.z).magnitude;
             if (curVelocityToExit < 1) _knockbackRequest.doingRequest = false;
         }
 
         if (_knockbackRequest.startNewRequest)
         {
-            animManager.SetCancelChargedAttack();
             rb.velocity = new Vector3(0, rb.velocity.y, 0);
             rb.AddForce(GetKnockbackMoveDir(_knockbackRequest.srcPos) * _knockbackRequest.force, ForceMode.Impulse);
             _knockbackRequest.startNewRequest = false;
@@ -257,12 +239,6 @@ public abstract class Character : MonoBehaviour
         HandleKnockback();
 
         HandleMovingAndJump();
-
-        // Stop manuever after landing again.
-        if ((_doingJump || _doingAirManeuver) && groundedCheck.IsGrounded)
-        {
-            //       ManeuverEnd();
-        }
     }
 
     /// <summary>

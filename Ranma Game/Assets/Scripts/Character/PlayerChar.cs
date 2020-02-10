@@ -27,8 +27,7 @@ public class PlayerChar : Character
         controls.Gameplay.Enable();
 
         controls.Gameplay.Maneuver.performed += ctx => Maneuver();
-        // controls.Gameplay.Maneuver.performed += ctx => ManeuverEnd();
-        controls.Gameplay.AttackStd.performed += ctx => AttackStd();
+        controls.Gameplay.AttackStd.started += ctx => AttackStd();
         controls.Gameplay.AttackHeavy.performed += ctx => AttackHeavy();
         controls.Gameplay.Interact.performed += ctx => Interact();
 

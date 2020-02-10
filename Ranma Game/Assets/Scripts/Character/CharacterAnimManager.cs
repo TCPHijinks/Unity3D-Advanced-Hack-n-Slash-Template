@@ -12,8 +12,14 @@ public class CharacterAnimManager : MonoBehaviour
         anim = GetComponentInChildren<Animator>();
     }
 
+    /// <summary>
+    /// Returns damage animation curve from animator.
+    /// </summary>
     public bool CanDoDamage => anim.GetFloat("Damage") > 0;
 
+    /// <summary>
+    /// Returns current attack being played by Animator (if any).
+    /// </summary>
     public AttkType CurAttack => (AttkType)anim.GetInteger("AttackType");
 
     /// <summary>
@@ -42,20 +48,9 @@ public class CharacterAnimManager : MonoBehaviour
     /// <param name="attackType"></param>
     public void DoAttack(AttkType attackType)
     {
-        _canDoAttack = !_canDoAttack; // TEMP - Toggles for player so Button Up & Button Down don't call Attack() twice.
-        if (_inBaseAnimTransition && _canDoAttack) _updatedAttackDuringTransition = true;
-        if (_canDoAttack) anim.SetInteger("AttackType", (int)attackType);
-    }
-
-    // If to do charged attack, and whether able to.
-    private bool doChargedAttk = false, _canDoAttack = false;
-
-    /// <summary>
-    /// Cancel charged attack.
-    /// </summary>
-    public void SetCancelChargedAttack()
-    {
-        doChargedAttk = false;
+        Debug.Log(attackType);
+        if (_inBaseAnimTransition) _updatedAttackDuringTransition = true;
+        anim.SetInteger("AttackType", (int)attackType);
     }
 
     /// <summary>
@@ -71,10 +66,9 @@ public class CharacterAnimManager : MonoBehaviour
 
         // Just transitioned if transition started, ended, and now in an Attack.
         _justFinishedTransitionedToAttk = DoingAttack && _startedBaseTransition && !_inBaseAnimTransition;
-
+        Debug.Log(_justFinishedTransitionedToAttk);
         // Reset attack in prep for next one.
-        if (!_canDoAttack && _justFinishedTransitionedToAttk && !_updatedAttackDuringTransition ||  // Reset attack if just transitioned w/o trying to attack again
-            !_canDoAttack && _startedBaseTransition && !_inBaseAnimTransition && !DoingAttack)// OR if can't attack and just exited attack state w/o trying to attack again.
+        if (_justFinishedTransitionedToAttk && !_updatedAttackDuringTransition)  // Reset attack if just transitioned w/o trying to attack again
         {
             anim.SetInteger("AttackType", (int)AttkType.none);
         }
@@ -83,14 +77,6 @@ public class CharacterAnimManager : MonoBehaviour
 
         // If just finished transition to an attack, not start of transition.
         if (_justFinishedTransitionedToAttk) _startedBaseTransition = false;
-
-        // If can do an attack (button down) and just transitioned into an attack.
-        if (_canDoAttack && _justFinishedTransitionedToAttk)
-        {
-            doChargedAttk = true;
-        }
-        // Can't charge attack if not able to attack and no attack executing.
-        else if (!_canDoAttack && CurAttack != AttkType.none) doChargedAttk = false;
     }
 
     /// <summary>
@@ -101,6 +87,5 @@ public class CharacterAnimManager : MonoBehaviour
         InAttkComboAndCanMove = anim.GetCurrentAnimatorStateInfo(0).IsTag("CanMoveAttack");
         DoingAttack = anim.GetCurrentAnimatorStateInfo(0).IsTag("Attack") || InAttkComboAndCanMove;
         AnimMoveSpeedPenalty = anim.GetFloat("MoveSpeedPenaltyPercentage");
-        anim.SetBool("ChargedAttack", doChargedAttk);
     }
 }
