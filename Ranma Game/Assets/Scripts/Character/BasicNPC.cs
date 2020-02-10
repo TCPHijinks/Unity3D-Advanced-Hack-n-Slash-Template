@@ -9,6 +9,8 @@ public class BasicNPC : Character
     {
         rb = GetComponent<Rigidbody>();
         animManager = GetComponent<CharacterAnimManager>();
+        groundedCheck = GetComponent<GroundedCheck>();
+
     }
 
     // Update is called once per frame

@@ -4,16 +4,13 @@ using UnityEngine;
 
 public class Health : MonoBehaviour
 {
-    CharModifyableProperties props;
-    [SerializeField] int maxHealth = 10;
+    [SerializeField] private int maxHealth = 10;
     public int CurHP { get; private set; }
-   
-    void Start()
-    {    
-        CurHP = maxHealth;
-        props = GetComponent<CharModifyableProperties>();
-    }
 
+    private void Start()
+    {
+        CurHP = maxHealth;
+    }
 
     public void TakeDamage(int amount, Vector3 dmgSrc)
     {
@@ -22,16 +19,13 @@ public class Health : MonoBehaviour
             Debug.LogError("ERROR - Health damage amount was < 0. All damage must be positive to be applied.");
             return;
         }
-        if(amount > 0)
-        {            
-           // Debug.Log(gameObject.name + " was damaged! (" + amount + "). Remainder " + (CurHP - amount) + ".");
+        if (amount > 0)
+        {
+            Debug.Log(gameObject.name + " was damaged! (" + amount + "). Remainder " + (CurHP - amount) + ".");
         }
 
-       
         CurHP -= amount;
-        
-        if (CurHP <= 0) Destroy(gameObject);        
-    }
 
- 
+        if (CurHP <= 0) Destroy(gameObject);
+    }
 }
